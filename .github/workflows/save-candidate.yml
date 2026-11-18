@@ -39,6 +39,18 @@ jobs:
           (root/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
+      - name: Prepare portable application transfer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          root = Path('candidate/3.5.1')
+          encoded = base64.b64encode((root/'xbloom-saud-3.5.1.bin').read_bytes()).decode('ascii')
+          transfer = root/'transfer'
+          transfer.mkdir(exist_ok=True)
+          for index, offset in enumerate(range(0,len(encoded),64000)):
+              (transfer/f'app-{index:03d}.b64').write_text(encoded[offset:offset+64000],encoding='ascii')
+          PY
       - name: Save candidate files only on the feature branch
         run: |
           git config user.name 'github-actions[bot]'
