@@ -1,4 +1,5 @@
 name: Save tested UI previews on feature branch
+# Text companions allow the repository connector to transfer preview images.
 on:
   push:
     branches: [feature/welcome-screensaver]
