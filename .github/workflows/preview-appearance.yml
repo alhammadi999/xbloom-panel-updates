@@ -19,7 +19,7 @@ jobs:
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
         run: |
-          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.1 -DPANEL_PILOT_ACCESS=ON
+          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.2 -DPANEL_PILOT_ACCESS=ON
           cmake --build sim-build -j 4
           ./sim-build/sim appearance-test
           ./sim-build/sim machine-test
