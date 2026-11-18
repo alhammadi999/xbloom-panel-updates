@@ -1,0 +1,52 @@
+name: Save verified owner candidate
+on:
+  push:
+    branches: [feature/welcome-screensaver]
+    paths: [.github/workflows/save-candidate.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  save-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/welcome-screensaver
+      - uses: actions/download-artifact@v4
+        with:
+          name: xbloom-owner-3.5.1-candidate
+          run-id: 44284244008
+          github-token: ${{ github.token }}
+          path: candidate/3.5.1
+      - run: python .github/scripts/render_previews.py candidate/3.5.1
+      - name: Verify application and full USB image
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          root = Path('candidate/3.5.1')
+          feed = json.loads((root/'pilot.json').read_text())
+          app = (root/'xbloom-saud-3.5.1.bin').read_bytes()
+          full = (root/'xbloom-saud-3.5.1-full-usb.bin').read_bytes()
+          assert feed['version'] == '3.5.1' and feed['channel'] == 'pilot'
+          assert feed['board'] == 'crowpanel-advance-43-saud'
+          assert len(app) == feed['bytes'] and hashlib.sha256(app).hexdigest() == feed['sha256']
+          assert b'XBLOOM-OTA|crowpanel-advance-43-saud|3.5.1|' in app
+          assert b'XBLOOM-CHANNEL|owner|' in app and b'XBLOOM-CHANNEL|customer|' not in app
+          assert full[0x10000:] == app and full[0] == 0xe9 and full[0x8000:0x8002] == b'\xaa\x50'
+          report = dict(version='3.5.1', channel='owner candidate only', appBytes=len(app), appSha256=feed['sha256'], factoryBytes=len(full), factorySha256=hashlib.sha256(full).hexdigest(), sourceCommit='1b069a5f4facfcd6b54c9855d7b9b3ce48aeac52', buildRun=44284244008, fullImageAppOffset='0x10000', usbFlashAddress='0x0', hardwareTested=False, publishedChannelsChanged=False)
+          (root/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Save candidate files only on the feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add candidate/3.5.1
+          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/3.5.1/') for p in paths)"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save verified owner 3.5.1 candidate without changing published feeds'
+            git push origin HEAD:feature/welcome-screensaver
+          fi
+
