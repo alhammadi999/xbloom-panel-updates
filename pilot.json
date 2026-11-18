@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.1",
+  "version": "3.5.2",
   "bytes": 2441552,
-  "sha256": "64ffd06d75561e9285c5356ea4d84b341b767232afa61b3e799b445c36728c76",
-  "notes": "Welcome animation, coffee screensaver, Espresso/Midnight/Cream backgrounds and personal photo upload. Owner test build.",
+  "sha256": "8065bdfdb439ea2dae1b0ef8ffd4c430bf9fe524609cf2eb4c872d40173519b8",
+  "notes": "Fixed full screen brightness during idle and screensaver to test dimming noise. Screen-off and night-off settings preserved.",
   "channel": "pilot"
 }
