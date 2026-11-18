@@ -22,11 +22,20 @@ jobs:
         run: unzip -q source/welcome-screensaver.zip -d firmware-src
       - name: Install pinned build tools
         run: python -m pip install -r firmware-src/requirements-build.txt
+      - uses: actions/cache/restore@v4
+        id: pio-cache
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: owner-pio55-${{ runner.os }}-${{ github.sha }}
+          restore-keys: owner-pio55-${{ runner.os }}-
       - name: Test photo conversion and release isolation
         working-directory: firmware-src
         run: |
           node tests/test_wallpaper_web.cjs
           python -m unittest discover -s tests -p test_customer_release.py -v
+          python -m unittest discover -s tests -p test_build_spawn.py -v
           g++ -std=c++17 -Iinclude tests/test_screen_preferences.cpp -o /tmp/screen-test
           /tmp/screen-test
           g++ -std=c++17 -Itests/wallpaper_mocks -Iinclude tests/test_wallpaper.cpp src/wallpaper.cpp -o /tmp/photo-test
@@ -36,6 +45,13 @@ jobs:
       - name: Build owner firmware
         working-directory: firmware-src
         run: pio run -e crowpanel-advance-43-pilot -j 2
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: owner-pio55-${{ runner.os }}-${{ github.sha }}
       - name: Build and test actual UI
         working-directory: firmware-src
         run: |
