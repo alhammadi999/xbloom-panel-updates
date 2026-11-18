@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "bytes": 2419872,
   "sha256": "26107c20a482d1e3e45fcb76694047000e36ca24b66ffa94c91ddd0f4e1dfff5",
-  "notes": "Online panel updates, customer and pilot channels, ring light and Studio settings.",
+  "notes": "OTA test only: identical 3.4.0 firmware. Installed version remains 3.4.0; update may be offered again.",
   "channel": "pilot"
 }
