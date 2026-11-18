@@ -1,0 +1,57 @@
+name: Build welcome and screensaver candidate
+on:
+  push:
+    branches: [feature/welcome-screensaver]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Extract candidate source
+        run: unzip -q source/welcome-screensaver.zip -d firmware-src
+      - name: Install pinned build tools
+        run: python -m pip install -r firmware-src/requirements-build.txt
+      - name: Test photo conversion and release isolation
+        working-directory: firmware-src
+        run: |
+          node tests/test_wallpaper_web.cjs
+          python -m unittest discover -s tests -p test_customer_release.py -v
+          g++ -std=c++17 -Iinclude tests/test_screen_preferences.cpp -o /tmp/screen-test
+          /tmp/screen-test
+          g++ -std=c++17 -Itests/wallpaper_mocks -Iinclude tests/test_wallpaper.cpp src/wallpaper.cpp -o /tmp/photo-test
+          /tmp/photo-test
+          g++ -std=c++17 -c -Iinclude tests/test_update_policy.cpp -o /tmp/customer-policy.o
+          g++ -std=c++17 -c -DPANEL_PILOT_ACCESS=1 -Iinclude tests/test_update_policy.cpp -o /tmp/owner-policy.o
+      - name: Build owner firmware
+        working-directory: firmware-src
+        run: pio run -e crowpanel-advance-43-pilot -j 2
+      - name: Build and test actual UI
+        working-directory: firmware-src
+        run: |
+          cmake -S sim -B sim-build -DLVGL_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/lvgl" -DARDUINOJSON_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson" -DFW_VERSION=3.5.1 -DPANEL_PILOT_ACCESS=ON
+          cmake --build sim-build -j 2
+          ./sim-build/sim appearance-test
+          ./sim-build/sim machine-test
+      - name: Verify candidate identity
+        working-directory: firmware-src
+        run: |
+          mkdir -p candidate
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Welcome animation, coffee screensaver, themes and personal photo. Owner test build."
+          cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.1-full-usb.bin
+          cp *.ppm candidate/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xbloom-owner-3.5.1-candidate
+          path: firmware-src/candidate
+          if-no-files-found: error
+
