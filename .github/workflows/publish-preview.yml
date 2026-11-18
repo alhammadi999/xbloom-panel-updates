@@ -1,0 +1,33 @@
+name: Save tested UI previews on feature branch
+on:
+  push:
+    branches: [feature/welcome-screensaver]
+    paths: [.github/workflows/publish-preview.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  save-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/welcome-screensaver
+      - uses: actions/download-artifact@v4
+        with:
+          name: welcome-ui-preview
+          run-id: 44281142685
+          github-token: ${{ github.token }}
+          path: candidate/ui
+      - run: python .github/scripts/render_previews.py candidate/ui
+      - name: Save previews only on the feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add candidate/ui
+          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/ui/') for p in paths)"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Save actual rendered welcome and screensaver previews'
+            git push origin HEAD:feature/welcome-screensaver
+          fi
+
