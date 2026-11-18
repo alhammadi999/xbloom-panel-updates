@@ -2,6 +2,7 @@ name: Build welcome and screensaver candidate
 on:
   push:
     branches: [feature/welcome-screensaver]
+    paths: [source/welcome-screensaver.zip]
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,0 +1,31 @@
+name: Render and test welcome UI
+on:
+  push:
+    branches: [feature/welcome-screensaver]
+    paths: [source/welcome-screensaver.zip, .github/workflows/preview-appearance.yml]
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract source and pinned UI dependencies
+        run: |
+          unzip -q source/welcome-screensaver.zip -d firmware-src
+          git clone --depth 1 --branch v9.1.0 https://github.com/lvgl/lvgl.git vendor/lvgl
+          git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
+      - name: Build actual UI and run interaction tests
+        working-directory: firmware-src
+        run: |
+          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.1 -DPANEL_PILOT_ACCESS=ON
+          cmake --build sim-build -j 4
+          ./sim-build/sim appearance-test
+          ./sim-build/sim machine-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: welcome-ui-preview
+          path: firmware-src/*.ppm
+          if-no-files-found: error
+
