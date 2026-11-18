@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.2",
-  "bytes": 2441552,
-  "sha256": "8065bdfdb439ea2dae1b0ef8ffd4c430bf9fe524609cf2eb4c872d40173519b8",
-  "notes": "Fixed full screen brightness during idle and screensaver to test dimming noise. Screen-off and night-off settings preserved.",
+  "version": "3.5.3",
+  "bytes": 2666288,
+  "sha256": "2bb35f91a975eb4dc03bb46eea31d15bbf6f96407165c525719b72dbf3aa219c",
+  "notes": "3Dup light welcome with gentle animation: five seconds, touch to skip after two seconds. 3Dup logo on coffee screensaver. Full visible brightness preserved.",
   "channel": "pilot"
 }
