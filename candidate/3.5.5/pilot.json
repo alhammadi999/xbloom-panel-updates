@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "board": "crowpanel-advance-43-saud",
+  "version": "3.5.5",
+  "bytes": 2667712,
+  "sha256": "4842efdcbd79062ce288529246b1bfc3ba12e2486d8a2d538be9aa6b195cc630",
+  "notes": "Confirm healthy updates with verified storage and retries so reset retains the new version. Ring light ON/OFF memory retained.",
+  "channel": "pilot"
+}
