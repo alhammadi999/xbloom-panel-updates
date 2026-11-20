@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.11",
-  "bytes": 2881200,
-  "sha256": "7eec6a79f688d8973666a7818cb2d6472cea542bb9a2bd21d4ba59f1356017f0",
-  "notes": "Separate Machine and Screen tabs. Apps keeps Spotify and lighting. Verified navigation and machine readback. Stable channel unchanged.",
+  "version": "3.5.12",
+  "bytes": 2896256,
+  "sha256": "acd0f67d189dea920e6eddebd97aded64db801b4b470818093bda9228d42868f",
+  "notes": "Studio settings: Pro/Auto, A/B/C presets, advanced levels, machine display, device info and maintenance guides. Fix C2 reads; add explicit L3 reference.",
   "channel": "pilot"
 }
