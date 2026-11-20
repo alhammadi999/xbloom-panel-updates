@@ -18,16 +18,13 @@ jobs:
           git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('firmware-src/src/ui.cpp')
+          p=Path('vendor/lvgl/src/draw/sw/lv_draw_sw_letter.c')
           s=p.read_text()
-          s=s.replace("lv_obj_t *chev = text(b, sym, &lv_font_montserrat_28, hex(TEXT));","lv_obj_t *chev = text(scr, sym, &lv_font_montserrat_28, hex(TEXT));")
-          s=s.replace("lv_obj_align(chev, LV_ALIGN_LEFT_MID, 12, 0);","lv_obj_set_pos(chev, M, SB + 11);")
-          s=s.replace("lv_obj_t *bar = group(lv_layer_top(), 0, 0, W, SB);","lv_obj_t *bar = lv_layer_top();")
-          s=s.replace("lv_obj_align(sb_clock, LV_ALIGN_CENTER, 0, 2);","lv_obj_align(sb_clock, LV_ALIGN_TOP_MID, 0, 10);")
-          s=s.replace("lv_obj_align(sb_bt, LV_ALIGN_RIGHT_MID, -M, 2);","lv_obj_align(sb_bt, LV_ALIGN_TOP_RIGHT, -M, 9);")
+          s='#include <stdio.h>\n'+s
+          s=s.replace('lv_draw_sw_blend(draw_unit, &blend_dsc);', 'if((mask_area.y1 < 36 && mask_area.x1>=380 && mask_area.x1<420)||(mask_area.x1==25 && mask_area.y1<80)){unsigned sum=0;for(unsigned k=0;k<draw_buf->header.h*draw_buf->header.stride;k++)sum+=draw_buf->data[k];printf("GLYPH rect=%d,%d,%d,%d clip=%d,%d,%d,%d opa=%d sum=%u\\n",mask_area.x1,mask_area.y1,mask_area.x2,mask_area.y2,draw_unit->clip_area->x1,draw_unit->clip_area->y1,draw_unit->clip_area->x2,draw_unit->clip_area->y2,blend_dsc.opa,sum);}lv_draw_sw_blend(draw_unit, &blend_dsc);')
           p.write_text(s)
           p=Path('firmware-src/sim/sim_main.cpp')
-          p.write_text(p.read_text().replace('return lv_obj_get_parent(parent);', 'return !strcmp(label,LV_SYMBOL_LEFT) && lv_obj_get_parent(parent)==lv_screen_active() ? lv_obj_get_child(lv_screen_active(),0) : lv_obj_get_parent(parent);'))
+          p.write_text(p.read_text().replace('  // Capture a complete frame', '  printf("SNAPSHOT %s\\n",fn);\n  // Capture a complete frame'))
           PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
