@@ -19,10 +19,11 @@ jobs:
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
         run: |
-          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.5 -DPANEL_PILOT_ACCESS=ON
+          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.6 -DPANEL_PILOT_ACCESS=ON -DPANEL_SPOTIFY_TRIAL=ON
           cmake --build sim-build -j 4
           ./sim-build/sim appearance-test
           ./sim-build/sim machine-test
+          ./sim-build/sim spotify-test
       - uses: actions/upload-artifact@v4
         with:
           name: welcome-ui-preview

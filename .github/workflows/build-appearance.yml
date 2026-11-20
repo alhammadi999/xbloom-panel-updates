@@ -37,6 +37,9 @@ jobs:
           /tmp/ota-boot-test
           g++ -std=c++17 -Itests/ring_light -Iinclude tests/ring_light/test.cpp src/ring_light.cpp -o /tmp/ring-test
           /tmp/ring-test
+          g++ -std=c++17 -DPANEL_SPOTIFY_TRIAL=1 -Iinclude -I.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson/src tests/test_spotify_engine.cpp src/spotify_engine.cpp -o /tmp/spotify-test
+          /tmp/spotify-test
+          python -m unittest discover -s tests -p test_spotify_link.py -v
           node tests/test_wallpaper_web.cjs
           python -m unittest discover -s tests -p test_customer_release.py -v
           python -m unittest discover -s tests -p test_build_spawn.py -v
@@ -59,20 +62,21 @@ jobs:
       - name: Build and test actual UI
         working-directory: firmware-src
         run: |
-          cmake -S sim -B sim-build -DLVGL_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/lvgl" -DARDUINOJSON_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson" -DFW_VERSION=3.5.5 -DPANEL_PILOT_ACCESS=ON
+          cmake -S sim -B sim-build -DLVGL_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/lvgl" -DARDUINOJSON_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson" -DFW_VERSION=3.5.6 -DPANEL_PILOT_ACCESS=ON -DPANEL_SPOTIFY_TRIAL=ON
           cmake --build sim-build -j 2
           ./sim-build/sim appearance-test
           ./sim-build/sim machine-test
+          ./sim-build/sim spotify-test
       - name: Verify candidate identity
         working-directory: firmware-src
         run: |
           mkdir -p candidate
-          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Confirm healthy updates with verified storage and retries so reset retains the new version. Ring light ON/OFF memory retained."
-          cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.5-full-usb.bin
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Optional Spotify remote trial: play, pause, next and previous on your phone. Disabled by default; link account once from a computer."
+          cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.6-full-usb.bin
           cp *.ppm candidate/
       - uses: actions/upload-artifact@v4
         with:
-          name: xbloom-owner-3.5.5-candidate
+          name: xbloom-owner-3.5.6-candidate
           path: firmware-src/candidate
           if-no-files-found: error
 
