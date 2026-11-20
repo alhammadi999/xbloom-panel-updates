@@ -15,33 +15,34 @@ jobs:
           ref: feature/welcome-screensaver
       - uses: actions/download-artifact@v4
         with:
-          name: xbloom-owner-3.5.10-candidate
-          run-id: 44736851652
+          name: xbloom-owner-3.5.11-candidate
+          run-id: 44741164025
           github-token: ${{ github.token }}
-          path: candidate/3.5.10
-      - run: python .github/scripts/render_previews.py candidate/3.5.10
+          path: candidate/3.5.11
+      - run: python .github/scripts/render_previews.py candidate/3.5.11
       - name: Verify application and full USB image
         run: |
           python - <<'PY'
           from pathlib import Path
           import hashlib, json
-          root = Path('candidate/3.5.10')
+          root = Path('candidate/3.5.11')
           feed = json.loads((root/'pilot.json').read_text())
-          app = (root/'xbloom-saud-3.5.10.bin').read_bytes()
-          full = (root/'xbloom-saud-3.5.10-full-usb.bin').read_bytes()
-          assert feed['version'] == '3.5.10' and feed['channel'] == 'pilot'
+          app = (root/'xbloom-saud-3.5.11.bin').read_bytes()
+          full = (root/'xbloom-saud-3.5.11-full-usb.bin').read_bytes()
+          assert feed['version'] == '3.5.11' and feed['channel'] == 'pilot'
           assert feed['board'] == 'crowpanel-advance-43-saud'
           assert len(app) == feed['bytes'] and hashlib.sha256(app).hexdigest() == feed['sha256']
-          assert b'XBLOOM-OTA|crowpanel-advance-43-saud|3.5.10|' in app
+          assert b'XBLOOM-OTA|crowpanel-advance-43-saud|3.5.11|' in app
           assert b'confirmation write failed' in app and b'new version confirmed and read back' in app
           assert b'Spotify remote is off' in app and b'/v1/me/player/' in app
           assert b'threedup-spotify-link.s-alhammadi999.chatgpt.site' in app and b'Apps' in app
+          assert b'Screen settings' in app and b'Machine settings' in app
           assert b'Read details - Radius:' in app and b'No baseline' in app
           assert b'Partial settings. Tap Refresh for the rest.' in app
           assert b'Login with Spotify' in app and b'volume_percent=' in app and b'code_verifier=' in app
           assert b'XBLOOM-CHANNEL|owner|' in app and b'XBLOOM-CHANNEL|customer|' not in app
           assert full[0x10000:] == app and full[0] == 0xe9 and full[0x8000:0x8002] == b'\xaa\x50'
-          report = dict(version='3.5.10', channel='owner candidate only', appBytes=len(app), appSha256=feed['sha256'], factoryBytes=len(full), factorySha256=hashlib.sha256(full).hexdigest(), sourceCommit='f91c7f31bf19e2a8cb6e805c490f33559075109f', buildRun=44736851652, fullImageAppOffset='0x10000', usbFlashAddress='0x0', hardwareTested=False, publishedChannelsChanged=False)
+          report = dict(version='3.5.11', channel='owner candidate only', appBytes=len(app), appSha256=feed['sha256'], factoryBytes=len(full), factorySha256=hashlib.sha256(full).hexdigest(), sourceCommit='9ecbd8446e68585658a2f92001ba8817a0583a5f', buildRun=44741164025, fullImageAppOffset='0x10000', usbFlashAddress='0x0', hardwareTested=False, publishedChannelsChanged=False)
           (root/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
@@ -49,9 +50,9 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add candidate/3.5.10
-          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/3.5.10/') for p in paths)"
+          git add candidate/3.5.11
+          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/3.5.11/') for p in paths)"
           if ! git diff --cached --quiet; then
-            git commit -m 'Save verified owner 3.5.10 candidate without changing published feeds'
+            git commit -m 'Save verified owner 3.5.11 candidate without changing published feeds'
             git push origin HEAD:feature/welcome-screensaver
           fi
