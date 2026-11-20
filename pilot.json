@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.7",
-  "bytes": 2879104,
-  "sha256": "f595bb67e1f3d7b2b5b1f8f84e296ae5aae71ac4cc32dc943ece6d20b4ce2329",
-  "notes": "Spotify trial: phone QR login and volume controls for supported devices. Keeps your saved account. Coffee and stable channel unchanged.",
+  "version": "3.5.8",
+  "bytes": 2879472,
+  "sha256": "bc9519240cb6eb261ada508f8d44204b358b2f33f4fd07b431903d4459361979",
+  "notes": "Apps tab for Spotify and lighting. Link Spotify from any internet connection. Keeps saved accounts and light settings.",
   "channel": "pilot"
 }
