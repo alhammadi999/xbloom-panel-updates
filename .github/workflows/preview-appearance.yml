@@ -16,23 +16,16 @@ jobs:
           unzip -q source/welcome-screensaver.zip -d firmware-src
           git clone --depth 1 --branch v9.1.0 https://github.com/lvgl/lvgl.git vendor/lvgl
           git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('vendor/lvgl/src/draw/sw/lv_draw_sw_letter.c')
-          s=p.read_text()
-          s='#include <stdio.h>\n'+s
-          s=s.replace('lv_draw_sw_blend(draw_unit, &blend_dsc);', 'if((mask_area.y1 < 36 && mask_area.x1>=380 && mask_area.x1<420)||(mask_area.x1==25 && mask_area.y1<80)){unsigned sum=0;for(unsigned k=0;k<draw_buf->header.h*draw_buf->header.stride;k++)sum+=draw_buf->data[k];printf("GLYPH rect=%d,%d,%d,%d clip=%d,%d,%d,%d opa=%d sum=%u color=%u cf=%d layer=%d,%d,%d,%d\\n",mask_area.x1,mask_area.y1,mask_area.x2,mask_area.y2,draw_unit->clip_area->x1,draw_unit->clip_area->y1,draw_unit->clip_area->x2,draw_unit->clip_area->y2,blend_dsc.opa,sum,(unsigned)lv_color_to_u32(blend_dsc.color),draw_unit->target_layer->color_format,draw_unit->target_layer->buf_area.x1,draw_unit->target_layer->buf_area.y1,draw_unit->target_layer->buf_area.x2,draw_unit->target_layer->buf_area.y2);}lv_draw_sw_blend(draw_unit, &blend_dsc);')
-          p.write_text(s)
-          p=Path('firmware-src/sim/sim_main.cpp')
-          p.write_text(p.read_text().replace('  // Capture a complete frame', '  printf("SNAPSHOT %s\\n",fn);\n  // Capture a complete frame'))
-          PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
         run: |
           cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.12 -DPANEL_PILOT_ACCESS=ON -DPANEL_SPOTIFY_TRIAL=ON
           cmake --build sim-build -j 4
           ./sim-build/sim appearance-test
-          ./sim-build/sim machine-test
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq valgrind
+          valgrind --track-origins=yes --log-file=valgrind.log ./sim-build/sim machine-test
+          cat valgrind.log
           ./sim-build/sim spotify-test
       - uses: actions/upload-artifact@v4
         with:
