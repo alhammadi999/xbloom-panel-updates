@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.4",
-  "bytes": 2666672,
-  "sha256": "e3e4fc235b1c8da17cd87c07a8746a45fc1028558b8b877dbc1d86dd4416b71c",
-  "notes": "Ring light remembers ON/OFF immediately across restart. Existing colour, brightness and effects preserved.",
+  "version": "3.5.5",
+  "bytes": 2667712,
+  "sha256": "4842efdcbd79062ce288529246b1bfc3ba12e2486d8a2d538be9aa6b195cc630",
+  "notes": "Confirm healthy updates with verified storage and retries so reset retains the new version. Ring light ON/OFF memory retained.",
   "channel": "pilot"
 }
