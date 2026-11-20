@@ -26,6 +26,8 @@ jobs:
           s=s.replace("lv_obj_align(sb_clock, LV_ALIGN_CENTER, 0, 2);","lv_obj_align(sb_clock, LV_ALIGN_TOP_MID, 0, 10);")
           s=s.replace("lv_obj_align(sb_bt, LV_ALIGN_RIGHT_MID, -M, 2);","lv_obj_align(sb_bt, LV_ALIGN_TOP_RIGHT, -M, 9);")
           p.write_text(s)
+          p=Path('firmware-src/sim/sim_main.cpp')
+          p.write_text(p.read_text().replace('return lv_obj_get_parent(parent);', 'return !strcmp(label,LV_SYMBOL_LEFT) && lv_obj_get_parent(parent)==lv_screen_active() ? lv_obj_get_child(lv_screen_active(),0) : lv_obj_get_parent(parent);'))
           PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
