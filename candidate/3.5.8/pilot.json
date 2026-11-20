@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "board": "crowpanel-advance-43-saud",
+  "version": "3.5.8",
+  "bytes": 2879472,
+  "sha256": "bc9519240cb6eb261ada508f8d44204b358b2f33f4fd07b431903d4459361979",
+  "notes": "Apps tab for Spotify and lighting. Link Spotify from any internet connection. Keeps saved accounts and light settings.",
+  "channel": "pilot"
+}
