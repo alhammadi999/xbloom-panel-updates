@@ -18,8 +18,14 @@ jobs:
           git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('firmware-src/sim/sim_main.cpp')
-          p.write_text(p.read_text().replace('  FILE *f = fopen(fn, "wb");', "  auto dump=[&](auto&& self,lv_obj_t* o)->void { if(!lv_obj_is_visible(o))return; if(lv_obj_check_type(o,&lv_label_class)) {const char*t=lv_label_get_text(o);if(!strcmp(t,LV_SYMBOL_LEFT)||!strcmp(t,\"9:25\")){lv_area_t a,p;lv_obj_get_coords(o,&a);lv_obj_get_coords(lv_obj_get_parent(o),&p);printf(\"DIAG %s %s rect=%d,%d,%d,%d parent=%d,%d,%d,%d opa=%d bg=%d color=%u flags=%u textopa=%d parentopa=%d parenttext=%d layered=%d scale=%d,%d\\\\n\",fn,t,a.x1,a.y1,a.x2,a.y2,p.x1,p.y1,p.x2,p.y2,lv_obj_get_style_opa(o,0),lv_obj_get_style_bg_opa(lv_obj_get_parent(o),0),(unsigned)lv_color_to_u32(lv_obj_get_style_text_color(o,0)),(unsigned)lv_obj_get_state(o),lv_obj_get_style_text_opa(o,0),lv_obj_get_style_opa_recursive(o,0),lv_obj_get_style_text_opa(lv_obj_get_parent(o),0),lv_obj_get_style_opa_layered(lv_obj_get_parent(o),0),lv_obj_get_style_transform_scale_x(lv_obj_get_parent(o),0),lv_obj_get_style_transform_scale_y(lv_obj_get_parent(o),0));}}for(uint32_t i=0;i<lv_obj_get_child_count(o);++i)self(self,lv_obj_get_child(o,i));};dump(dump,lv_screen_active());dump(dump,lv_layer_top());"+'\n  FILE *f = fopen(fn, "wb");'))
+          p=Path('firmware-src/src/ui.cpp')
+          s=p.read_text()
+          s=s.replace("lv_obj_t *chev = text(b, sym, &lv_font_montserrat_28, hex(TEXT));","lv_obj_t *chev = text(scr, sym, &lv_font_montserrat_28, hex(TEXT));")
+          s=s.replace("lv_obj_align(chev, LV_ALIGN_LEFT_MID, 12, 0);","lv_obj_set_pos(chev, M, SB + 11);")
+          s=s.replace("lv_obj_t *bar = group(lv_layer_top(), 0, 0, W, SB);","lv_obj_t *bar = lv_layer_top();")
+          s=s.replace("lv_obj_align(sb_clock, LV_ALIGN_CENTER, 0, 2);","lv_obj_align(sb_clock, LV_ALIGN_TOP_MID, 0, 10);")
+          s=s.replace("lv_obj_align(sb_bt, LV_ALIGN_RIGHT_MID, -M, 2);","lv_obj_align(sb_bt, LV_ALIGN_TOP_RIGHT, -M, 9);")
+          p.write_text(s)
           PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
