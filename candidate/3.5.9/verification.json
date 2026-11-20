@@ -1,0 +1,14 @@
+{
+  "version": "3.5.9",
+  "channel": "owner candidate only",
+  "appBytes": 2879888,
+  "appSha256": "d3d0909a9316669bdee3f817a86b561d8dcb5bfd214daf5a5436e1d45a8c1f12",
+  "factoryBytes": 2945424,
+  "factorySha256": "6496f331e9d3f3f194336fd52b85d8cda414e76cf00711d31d9a3ba08b0bebf0",
+  "sourceCommit": "7a879bd71c4522c9b128446d16192b73374c3f7d",
+  "buildRun": 44734724669,
+  "fullImageAppOffset": "0x10000",
+  "usbFlashAddress": "0x0",
+  "hardwareTested": false,
+  "publishedChannelsChanged": false
+}

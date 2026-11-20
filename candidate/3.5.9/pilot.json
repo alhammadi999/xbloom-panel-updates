@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "board": "crowpanel-advance-43-saud",
+  "version": "3.5.9",
+  "bytes": 2879888,
+  "sha256": "d3d0909a9316669bdee3f817a86b561d8dcb5bfd214daf5a5436e1d45a8c1f12",
+  "notes": "Fix machine settings refresh using the connection handshake, delayed-report handling and bounded retries. Keeps Apps, Spotify and saved settings.",
+  "channel": "pilot"
+}
