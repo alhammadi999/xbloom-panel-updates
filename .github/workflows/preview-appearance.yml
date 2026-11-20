@@ -16,6 +16,11 @@ jobs:
           unzip -q source/welcome-screensaver.zip -d firmware-src
           git clone --depth 1 --branch v9.1.0 https://github.com/lvgl/lvgl.git vendor/lvgl
           git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('firmware-src/sim/sim_main.cpp')
+          p.write_text(p.read_text().replace('  FILE *f = fopen(fn, "wb");', "  auto dump=[&](auto&& self,lv_obj_t* o)->void { if(!lv_obj_is_visible(o))return; if(lv_obj_check_type(o,&lv_label_class)) {const char*t=lv_label_get_text(o);if(!strcmp(t,LV_SYMBOL_LEFT)||!strcmp(t,\"9:25\")){lv_area_t a,p;lv_obj_get_coords(o,&a);lv_obj_get_coords(lv_obj_get_parent(o),&p);printf(\"DIAG %s %s rect=%d,%d,%d,%d parent=%d,%d,%d,%d opa=%d bg=%d color=%u flags=%u\\\\n\",fn,t,a.x1,a.y1,a.x2,a.y2,p.x1,p.y1,p.x2,p.y2,lv_obj_get_style_opa(o,0),lv_obj_get_style_bg_opa(lv_obj_get_parent(o),0),(unsigned)lv_color_to_u32(lv_obj_get_style_text_color(o,0)),(unsigned)lv_obj_get_state(o));}}for(uint32_t i=0;i<lv_obj_get_child_count(o);++i)self(self,lv_obj_get_child(o,i));};dump(dump,lv_screen_active());dump(dump,lv_layer_top());"+'\n  FILE *f = fopen(fn, "wb");'))
+          PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
         run: |
