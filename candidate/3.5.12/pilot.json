@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "board": "crowpanel-advance-43-saud",
+  "version": "3.5.12",
+  "bytes": 2896256,
+  "sha256": "acd0f67d189dea920e6eddebd97aded64db801b4b470818093bda9228d42868f",
+  "notes": "Studio settings: Pro/Auto, A/B/C presets, advanced levels, machine display, device info and maintenance guides. Fix C2 reads; add explicit L3 reference.",
+  "channel": "pilot"
+}
