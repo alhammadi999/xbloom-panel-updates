@@ -2,7 +2,7 @@ name: Build welcome and screensaver candidate
 on:
   push:
     branches: [feature/welcome-screensaver]
-    paths: [source/welcome-screensaver.zip]
+    paths: [source/welcome-screensaver.zip, .github/workflows/build-appearance.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -76,7 +76,7 @@ jobs:
         working-directory: firmware-src
         run: |
           mkdir -p candidate
-          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Separate Machine and Screen bottom tabs, with Apps for Spotify and lighting. Direct machine access, clearer panel settings and verified return navigation. Stable channel unchanged."
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Separate Machine and Screen tabs. Apps keeps Spotify and lighting. Verified navigation and machine readback. Stable channel unchanged."
           cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.11-full-usb.bin
           cp *.ppm candidate/
       - uses: actions/upload-artifact@v4
