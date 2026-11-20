@@ -15,29 +15,30 @@ jobs:
           ref: feature/welcome-screensaver
       - uses: actions/download-artifact@v4
         with:
-          name: xbloom-owner-3.5.6-candidate
-          run-id: 44716956396
+          name: xbloom-owner-3.5.7-candidate
+          run-id: 44725807665
           github-token: ${{ github.token }}
-          path: candidate/3.5.6
-      - run: python .github/scripts/render_previews.py candidate/3.5.6
+          path: candidate/3.5.7
+      - run: python .github/scripts/render_previews.py candidate/3.5.7
       - name: Verify application and full USB image
         run: |
           python - <<'PY'
           from pathlib import Path
           import hashlib, json
-          root = Path('candidate/3.5.6')
+          root = Path('candidate/3.5.7')
           feed = json.loads((root/'pilot.json').read_text())
-          app = (root/'xbloom-saud-3.5.6.bin').read_bytes()
-          full = (root/'xbloom-saud-3.5.6-full-usb.bin').read_bytes()
-          assert feed['version'] == '3.5.6' and feed['channel'] == 'pilot'
+          app = (root/'xbloom-saud-3.5.7.bin').read_bytes()
+          full = (root/'xbloom-saud-3.5.7-full-usb.bin').read_bytes()
+          assert feed['version'] == '3.5.7' and feed['channel'] == 'pilot'
           assert feed['board'] == 'crowpanel-advance-43-saud'
           assert len(app) == feed['bytes'] and hashlib.sha256(app).hexdigest() == feed['sha256']
-          assert b'XBLOOM-OTA|crowpanel-advance-43-saud|3.5.6|' in app
+          assert b'XBLOOM-OTA|crowpanel-advance-43-saud|3.5.7|' in app
           assert b'confirmation write failed' in app and b'new version confirmed and read back' in app
           assert b'Spotify remote is off' in app and b'/v1/me/player/' in app
+          assert b'Login with Spotify' in app and b'volume_percent=' in app and b'code_verifier=' in app
           assert b'XBLOOM-CHANNEL|owner|' in app and b'XBLOOM-CHANNEL|customer|' not in app
           assert full[0x10000:] == app and full[0] == 0xe9 and full[0x8000:0x8002] == b'\xaa\x50'
-          report = dict(version='3.5.6', channel='owner candidate only', appBytes=len(app), appSha256=feed['sha256'], factoryBytes=len(full), factorySha256=hashlib.sha256(full).hexdigest(), sourceCommit='f026c12c12775378f6dbf2cdff9bb2e046b00e72', buildRun=44716956396, fullImageAppOffset='0x10000', usbFlashAddress='0x0', hardwareTested=False, publishedChannelsChanged=False)
+          report = dict(version='3.5.7', channel='owner candidate only', appBytes=len(app), appSha256=feed['sha256'], factoryBytes=len(full), factorySha256=hashlib.sha256(full).hexdigest(), sourceCommit='b3f1a6ad9afc44486464dbb921adb60bdf21b6b8', buildRun=44725807665, fullImageAppOffset='0x10000', usbFlashAddress='0x0', hardwareTested=False, publishedChannelsChanged=False)
           (root/'verification.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
@@ -45,9 +46,9 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add candidate/3.5.6
-          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/3.5.6/') for p in paths)"
+          git add candidate/3.5.7
+          python -c "import subprocess; paths=subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines(); assert all(p.startswith('candidate/3.5.7/') for p in paths)"
           if ! git diff --cached --quiet; then
-            git commit -m 'Save verified owner 3.5.6 candidate without changing published feeds'
+            git commit -m 'Save verified owner 3.5.7 candidate without changing published feeds'
             git push origin HEAD:feature/welcome-screensaver
           fi
