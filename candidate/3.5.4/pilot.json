@@ -1,9 +1,0 @@
-{
-  "schema": 1,
-  "board": "crowpanel-advance-43-saud",
-  "version": "3.5.4",
-  "bytes": 2666672,
-  "sha256": "e3e4fc235b1c8da17cd87c07a8746a45fc1028558b8b877dbc1d86dd4416b71c",
-  "notes": "Ring light remembers ON/OFF immediately across restart. Existing colour, brightness and effects preserved.",
-  "channel": "pilot"
-}

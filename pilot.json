@@ -1,9 +1,0 @@
-{
-  "schema": 1,
-  "board": "crowpanel-advance-43-saud",
-  "version": "3.4.2",
-  "bytes": 2420256,
-  "sha256": "42d2ac16bacb222328a425e0d16599dcb620bd81bbd5246e23d40f13e6a71c31",
-  "notes": "Real 3.4.2 firmware; clear verification errors and retry flow. Stable stays 3.4.0. Test restart and installed version.",
-  "channel": "pilot"
-}
