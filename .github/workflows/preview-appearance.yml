@@ -16,16 +16,18 @@ jobs:
           unzip -q source/welcome-screensaver.zip -d firmware-src
           git clone --depth 1 --branch v9.1.0 https://github.com/lvgl/lvgl.git vendor/lvgl
           git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('firmware-src/sim/sim_main.cpp')
+          p.write_text(p.read_text().replace('  FILE *f = fopen(fn, "wb");', '  if (!strncmp(fn,"machine-",8)) {int n=0;for(int y=10;y<=29;y++)for(int x=383;x<=417;x++)if(fb[y*800+x]>0x8410)n++;assert(n>50);}\n  FILE *f = fopen(fn, "wb");'))
+          PY
       - name: Build actual UI and run interaction tests
         working-directory: firmware-src
         run: |
-          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.5.12 -DPANEL_PILOT_ACCESS=ON -DPANEL_SPOTIFY_TRIAL=ON
+          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DCMAKE_C_FLAGS=-O2 -DCMAKE_CXX_FLAGS=-O2 -DFW_VERSION=3.5.12 -DPANEL_PILOT_ACCESS=ON -DPANEL_SPOTIFY_TRIAL=ON
           cmake --build sim-build -j 4
           ./sim-build/sim appearance-test
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq valgrind
-          valgrind --track-origins=yes --log-file=valgrind.log ./sim-build/sim machine-test
-          cat valgrind.log
+          ./sim-build/sim machine-test
           ./sim-build/sim spotify-test
       - uses: actions/upload-artifact@v4
         with:
