@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.5",
-  "bytes": 2667712,
-  "sha256": "4842efdcbd79062ce288529246b1bfc3ba12e2486d8a2d538be9aa6b195cc630",
-  "notes": "Confirm healthy updates with verified storage and retries so reset retains the new version. Ring light ON/OFF memory retained.",
+  "version": "3.5.6",
+  "bytes": 2729088,
+  "sha256": "7c671015095f754309b1f361b5c17b82399dec28a4f8408ac9775aedf8555b34",
+  "notes": "Optional Spotify remote trial: play, pause, next and previous on your phone. Disabled by default; link account once from a computer.",
   "channel": "pilot"
 }
