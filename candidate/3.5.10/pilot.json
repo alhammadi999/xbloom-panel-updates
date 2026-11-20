@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "board": "crowpanel-advance-43-saud",
+  "version": "3.5.10",
+  "bytes": 2881120,
+  "sha256": "8658c5713c602ca1a04deecc7cc3f6daa17dffc51ffd5e4980ed66495a2561e3",
+  "notes": "Read radius and vibration independently, retain late replies and show read details for unrecognized settings. Keeps confirmed values and write limits.",
+  "channel": "pilot"
+}
