@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.10",
-  "bytes": 2881120,
-  "sha256": "8658c5713c602ca1a04deecc7cc3f6daa17dffc51ffd5e4980ed66495a2561e3",
-  "notes": "Read radius and vibration independently, retain late replies and show read details for unrecognized settings. Keeps confirmed values and write limits.",
+  "version": "3.5.11",
+  "bytes": 2881200,
+  "sha256": "7eec6a79f688d8973666a7818cb2d6472cea542bb9a2bd21d4ba59f1356017f0",
+  "notes": "Separate Machine and Screen tabs. Apps keeps Spotify and lighting. Verified navigation and machine readback. Stable channel unchanged.",
   "channel": "pilot"
 }
