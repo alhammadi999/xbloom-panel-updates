@@ -33,6 +33,8 @@ jobs:
       - name: Test photo conversion and release isolation
         working-directory: firmware-src
         run: |
+          g++ -std=c++17 -Itests/ota_boot -Iinclude tests/ota_boot/test.cpp src/ota_boot.cpp -o /tmp/ota-boot-test
+          /tmp/ota-boot-test
           g++ -std=c++17 -Itests/ring_light -Iinclude tests/ring_light/test.cpp src/ring_light.cpp -o /tmp/ring-test
           /tmp/ring-test
           node tests/test_wallpaper_web.cjs
@@ -57,7 +59,7 @@ jobs:
       - name: Build and test actual UI
         working-directory: firmware-src
         run: |
-          cmake -S sim -B sim-build -DLVGL_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/lvgl" -DARDUINOJSON_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson" -DFW_VERSION=3.5.4 -DPANEL_PILOT_ACCESS=ON
+          cmake -S sim -B sim-build -DLVGL_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/lvgl" -DARDUINOJSON_DIR="$PWD/.pio/libdeps/crowpanel-advance-43-pilot/ArduinoJson" -DFW_VERSION=3.5.5 -DPANEL_PILOT_ACCESS=ON
           cmake --build sim-build -j 2
           ./sim-build/sim appearance-test
           ./sim-build/sim machine-test
@@ -65,12 +67,12 @@ jobs:
         working-directory: firmware-src
         run: |
           mkdir -p candidate
-          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Ring light remembers ON/OFF immediately across restart. Existing colour, brightness and effects preserved."
-          cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.4-full-usb.bin
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43-pilot/firmware.bin --notes "Confirm healthy updates with verified storage and retries so reset retains the new version. Ring light ON/OFF memory retained."
+          cp .pio/build/crowpanel-advance-43-pilot/firmware.factory.bin candidate/xbloom-saud-3.5.5-full-usb.bin
           cp *.ppm candidate/
       - uses: actions/upload-artifact@v4
         with:
-          name: xbloom-owner-3.5.4-candidate
+          name: xbloom-owner-3.5.5-candidate
           path: firmware-src/candidate
           if-no-files-found: error
 
