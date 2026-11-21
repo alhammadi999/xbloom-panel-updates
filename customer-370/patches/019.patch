@@ -1,0 +1,34 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1024,14 +1024,18 @@
+   for(int i=0;i<43;++i) ctrl[i]=1;
+   ctrl[40]=4; // space bar
+   lv_keyboard_set_map(kb,LV_KEYBOARD_MODE_TEXT_ARABIC,map,ctrl);
++  lv_obj_remove_event_cb(kb,lv_keyboard_def_event_cb);
+   lv_obj_add_event_cb(kb,[](lv_event_t *e) {
+     auto *obj=(lv_obj_t *)lv_event_get_current_target(e);
+     auto id=lv_buttonmatrix_get_selected_button(obj);
+     if(id==LV_BUTTONMATRIX_BUTTON_NONE) return;
+     const char *key=lv_buttonmatrix_get_button_text(obj,id);if(!key)return;
+-    if(!strcmp(key,"abc") || !strcmp(key,"ABC") || !strcmp(key,"1#") || !strcmp(key,"أب")
+-       || !strcmp(key,LV_SYMBOL_OK) || !strcmp(key,LV_SYMBOL_NEW_LINE)
+-       || !strcmp(key,LV_SYMBOL_CLOSE) || !strcmp(key,LV_SYMBOL_KEYBOARD))return;
++    if(!strcmp(key,"abc")){lv_keyboard_set_mode(obj,LV_KEYBOARD_MODE_TEXT_LOWER);return;}
++    if(!strcmp(key,"ABC")){lv_keyboard_set_mode(obj,LV_KEYBOARD_MODE_TEXT_UPPER);return;}
++    if(!strcmp(key,"1#")){lv_keyboard_set_mode(obj,LV_KEYBOARD_MODE_SPECIAL);return;}
++    if(!strcmp(key,"أب")){lv_keyboard_set_mode(obj,LV_KEYBOARD_MODE_TEXT_ARABIC);return;}
++    if(!strcmp(key,LV_SYMBOL_OK) || !strcmp(key,LV_SYMBOL_NEW_LINE)){lv_obj_send_event(obj,LV_EVENT_READY,nullptr);return;}
++    if(!strcmp(key,LV_SYMBOL_CLOSE) || !strcmp(key,LV_SYMBOL_KEYBOARD)){lv_obj_send_event(obj,LV_EVENT_CANCEL,nullptr);return;}
+     if(!strcmp(key,LV_SYMBOL_BACKSPACE))te_input.backspace();
+     else if(!strcmp(key,LV_SYMBOL_LEFT))te_input.left();
+     else if(!strcmp(key,LV_SYMBOL_RIGHT))te_input.right();
+--- a/include/text_input.h
++++ b/include/text_input.h
+@@ -1,5 +1,6 @@
+ #pragma once
+ #include <string>
++#include <cstdint>
+ #include <algorithm>
+ // Store original UTF-8 separately from LVGL's shaped display text. Cursor edits
+ // always operate on complete codepoints, never presentation forms or byte cuts.
+
