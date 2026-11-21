@@ -1,0 +1,146 @@
+--- a/src/appearance.cpp
++++ b/src/appearance.cpp
+@@ -1,4 +1,6 @@
+ #include "appearance.h"
++#include "i18n.h"
++#include "arabic_text.h"
+ #include "panel_setup.h"
+ #include "panel_net.h"
+ #include "wallpaper.h"
+@@ -44,8 +46,8 @@
+ }
+ lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_font_t *font, uint32_t colour, int x, int y) {
+   auto *obj = lv_label_create(parent);
+-  lv_label_set_text(obj, text); lv_obj_set_pos(obj, x, y);
+-  lv_obj_set_style_text_font(obj, font, 0); lv_obj_set_style_text_color(obj, lv_color_hex(colour), 0);
++  arabic_text::set(obj, text); lv_obj_set_pos(obj, x, y);
++  lv_obj_set_style_text_font(obj, arabic_text::font(font,text), 0); lv_obj_set_style_text_color(obj, lv_color_hex(colour), 0);
+   return obj;
+ }
+ void visible(lv_obj_t *obj, bool on) { if (on) lv_obj_remove_flag(obj, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN); }
+@@ -68,15 +70,15 @@
+   lv_obj_add_event_cb(welcome, [](lv_event_t *) {
+     if (!welcome_pending_start && screen_prefs::can_skip_welcome(uint32_t(millis() - welcome_started))) dismiss_welcome();
+   }, LV_EVENT_PRESSED, nullptr);
+-  label(welcome, "WELCOME TO YOUR COFFEE RITUAL", &inter_14, 0x807166, 48, 34);
++  label(welcome, i18n::tr("WELCOME TO YOUR COFFEE RITUAL"), &inter_14, 0x807166, 48, 34);
+   auto *device = label(welcome, "xBloom Studio", &inter_14, 0x807166, 0, 34); lv_obj_align(device, LV_ALIGN_TOP_RIGHT, -48, 34);
+   auto *logo = lv_image_create(welcome); lv_image_set_src(logo, &brand::welcome_logo()); lv_obj_set_pos(logo, 160, 118);
+   lv_obj_remove_flag(logo, LV_OBJ_FLAG_CLICKABLE);
+   for (int i = 0; i < 3; ++i) welcome_dots[i] = rect(welcome, 384 + i*14, 359, 6, 6, 0xCD7D48, LV_RADIUS_CIRCLE);
+-  auto *tagline = label(welcome, "Your next great cup starts here.", &inter_20, 0x766556, 0, 390); lv_obj_align(tagline, LV_ALIGN_TOP_MID, 0, 390);
++  auto *tagline = label(welcome, i18n::tr("Your next great cup starts here."), &inter_20, 0x766556, 0, 390); lv_obj_align(tagline, LV_ALIGN_TOP_MID, 0, 390);
+   label(welcome, "3Dup xBloom Panel", &inter_14, 0x7C736C, 48, 444);
+-  auto *footer = label(welcome, "Made for xBloom Studio", &inter_14, 0x7C736C, 0, 444); lv_obj_align(footer, LV_ALIGN_TOP_RIGHT, -48, 444);
+-  welcome_hint = label(welcome, "Touch to skip", &inter_14, 0xA1653E, 0, 444); lv_obj_align(welcome_hint, LV_ALIGN_TOP_MID, 0, 444);
++  auto *footer = label(welcome, i18n::tr("Made for xBloom Studio"), &inter_14, 0x7C736C, 0, 444); lv_obj_align(footer, LV_ALIGN_TOP_RIGHT, -48, 444);
++  welcome_hint = label(welcome, i18n::tr("Touch to skip"), &inter_14, 0xA1653E, 0, 444); lv_obj_align(welcome_hint, LV_ALIGN_TOP_MID, 0, 444);
+   visible(welcome_hint, false);
+   visible(welcome, false);
+ }
+@@ -98,12 +100,12 @@
+     lv_obj_set_pos(steam[i], 75 + i*25, 22); lv_obj_set_style_line_width(steam[i], 2, 0);
+     lv_obj_set_style_line_color(steam[i], lv_color_hex(0xCD7D48), 0);
+   }
+-  idle_title = label(idle, "A little pause. A better cup.", &inter_26b, 0xF2E9DC, 0, 276); lv_obj_align(idle_title, LV_ALIGN_TOP_MID, 0, 276);
+-  idle_sub = label(idle, "Good things take a little brewing.", &inter_16, 0xB2A18B, 0, 326); lv_obj_align(idle_sub, LV_ALIGN_TOP_MID, 0, 326);
++  idle_title = label(idle, i18n::tr("A little pause. A better cup."), &inter_26b, 0xF2E9DC, 0, 276); lv_obj_align(idle_title, LV_ALIGN_TOP_MID, 0, 276);
++  idle_sub = label(idle, i18n::tr("Good things take a little brewing."), &inter_16, 0xB2A18B, 0, 326); lv_obj_align(idle_sub, LV_ALIGN_TOP_MID, 0, 326);
+   idle_logo = rect(idle, 326, 365, 148, 72, 0xFFFFFF, 4);
+   auto *logo = lv_image_create(idle_logo); lv_image_set_src(logo, &brand::saver_logo()); lv_obj_set_pos(logo, 8, 6);
+   lv_obj_remove_flag(logo, LV_OBJ_FLAG_CLICKABLE);
+-  idle_hint = label(idle, "Touch to wake", &inter_14, 0xB2A18B, 48, 432);
++  idle_hint = label(idle, i18n::tr("Touch to wake"), &inter_14, 0xB2A18B, 48, 432);
+   visible(idle, false);
+ }
+ void refresh_idle() {
+@@ -138,9 +140,9 @@
+   char clock_text[16] = "--:--";
+   struct tm local;
+   if (clock && net::local_time(&local)) strftime(clock_text, sizeof clock_text, "%H:%M", &local);
+-  lv_label_set_text(idle_title, clock ? clock_text : "A little pause. A better cup.");
++  arabic_text::set(idle_title, clock ? clock_text : i18n::tr("A little pause. A better cup."));
+   lv_obj_align(idle_title, LV_ALIGN_TOP_MID, 0, clock ? 195 : 276);
+-  lv_label_set_text(idle_sub, mode == Saver::Photo && !custom ? "Choose a photo in Screensaver settings." : "Good things take a little brewing.");
++  arabic_text::set(idle_sub, mode == Saver::Photo && !custom ? i18n::tr("Choose a photo in Screensaver settings.") : i18n::tr("Good things take a little brewing."));
+   lv_obj_align(idle_sub, LV_ALIGN_TOP_MID, 0, 326);
+   if (off) lv_obj_set_style_bg_color(idle, lv_color_hex(0), 0);
+   for (int i = 0; i < 3; ++i) { lv_obj_set_y(steam[i], 22); lv_obj_set_style_opa(steam[i], 110, 0); }
+@@ -165,14 +167,14 @@
+   }
+   visible(preview_photo, bool(preview_hold)); visible(preview_label, !preview_hold);
+   if (mode == Saver::Off) lv_obj_set_style_bg_color(preview, lv_color_hex(0), 0);
+-  const char *message = mode == Saver::Clock ? "Clock" : mode == Saver::Off ? "Screen off" : mode == Saver::Photo ? (wallpaper::current() ? "My photo saved" : "Add your photo") : "Take a moment.";
+-  lv_label_set_text(preview_label, message); lv_obj_center(preview_label);
++  const char *message = mode == Saver::Clock ? i18n::tr("Clock") : mode == Saver::Off ? i18n::tr("Screen off") : mode == Saver::Photo ? (wallpaper::current() ? i18n::tr("My photo saved") : i18n::tr("Add your photo")) : i18n::tr("Take a moment.");
++  arabic_text::set(preview_label, message); lv_obj_center(preview_label);
+   lv_dropdown_set_selected(mode_dd, unsigned(mode)); lv_dropdown_set_selected(theme_dd, unsigned(net::pref_background()));
+ }
+ lv_obj_t *dropdown(lv_obj_t *parent, const char *options, int x, int y, lv_event_cb_t changed) {
+   auto *obj = lv_dropdown_create(parent); lv_dropdown_set_options_static(obj, options);
+   lv_obj_set_pos(obj, x, y); lv_obj_set_size(obj, 354, 43);
+-  lv_obj_set_style_text_font(obj, &inter_16, 0);
++  lv_obj_set_style_text_font(obj, arabic_text::font(&inter_16,options), 0);
+   lv_obj_set_style_text_font(obj, &lv_font_montserrat_14, LV_PART_INDICATOR);
+   lv_obj_set_style_bg_color(obj, lv_color_hex(0x242424), 0); lv_obj_set_style_text_color(obj, lv_color_hex(0xF2E9DC), 0);
+   auto *list = lv_dropdown_get_list(obj); lv_obj_set_style_bg_color(list, lv_color_hex(0x242424), 0); lv_obj_set_style_text_color(list, lv_color_hex(0xF2E9DC), 0);
+@@ -183,40 +185,40 @@
+   net::appearance_page(true);
+   char text[240];
+   if (net::state() == net::Wifi::Connected)
+-    snprintf(text, sizeof text, "On the same Wi-Fi, open:\nhttp://%s/wallpaper\n\nChoose a photo on your phone.\nIt is resized to fit and saved on this panel.", net::ip());
+-  else snprintf(text, sizeof text, "Connect the panel to Wi-Fi first.\nThen return here to add your photo.");
+-  lv_label_set_text(upload_address, text); lv_screen_load(upload_page);
++    snprintf(text, sizeof text, i18n::tr("On the same Wi-Fi, open:\nhttp://%s/wallpaper\n\nChoose a photo on your phone.\nIt is resized to fit and saved on this panel."), net::ip());
++  else snprintf(text, sizeof text, i18n::tr("Connect the panel to Wi-Fi first.\nThen return here to add your photo."));
++  arabic_text::set(upload_address, text); lv_screen_load(upload_page);
+ }
+ void build_settings() {
+   settings = rect(nullptr, 0, 0, 800, 480, 0x080808);
+-  button(settings, "< Back", 24, 44, 106, [](lv_event_t *) { close_settings(); });
+-  label(settings, "Screensaver", &inter_26b, 0xF2E9DC, 150, 52);
++  button(settings, i18n::tr("< Back"), 24, 44, 106, [](lv_event_t *) { close_settings(); });
++  label(settings, i18n::tr("Screensaver"), &inter_26b, 0xF2E9DC, 150, 52);
+   preview = rect(settings, 24, 110, 348, 248, 0x15110E, 16);
+   preview_photo = lv_image_create(preview); visible(preview_photo, false);
+-  preview_label = label(preview, "Take a moment.", &inter_26b, 0xF2E9DC, 0, 0); lv_obj_center(preview_label);
+-  label(settings, "When idle", &inter_16, 0xAEAEB2, 398, 106);
+-  mode_dd = dropdown(settings, "Coffee motion\nStill background\nClock\nMy photo\nScreen off", 398, 132, [](lv_event_t *event) {
++  preview_label = label(preview, i18n::tr("Take a moment."), &inter_26b, 0xF2E9DC, 0, 0); lv_obj_center(preview_label);
++  label(settings, i18n::tr("When idle"), &inter_16, 0xAEAEB2, 398, 106);
++  mode_dd = dropdown(settings, i18n::tr("Coffee motion\nStill background\nClock\nMy photo\nScreen off"), 398, 132, [](lv_event_t *event) {
+     net::set_pref_saver(screen_prefs::saver(lv_dropdown_get_selected(static_cast<lv_obj_t *>(lv_event_get_target(event))))); refresh_preview();
+   });
+-  label(settings, "Background", &inter_16, 0xAEAEB2, 398, 192);
+-  theme_dd = dropdown(settings, "Espresso\nMidnight\nCream", 398, 218, [](lv_event_t *event) {
++  label(settings, i18n::tr("Background"), &inter_16, 0xAEAEB2, 398, 192);
++  theme_dd = dropdown(settings, i18n::tr("Espresso\nMidnight\nCream"), 398, 218, [](lv_event_t *event) {
+     net::set_pref_background(screen_prefs::theme(lv_dropdown_get_selected(static_cast<lv_obj_t *>(lv_event_get_target(event))))); refresh_preview();
+   });
+-  button(settings, "Choose my photo", 398, 282, 354, [](lv_event_t *) { open_upload(); });
+-  label(settings, "Welcome at startup", &inter_16, 0xF2E9DC, 398, 351);
++  button(settings, i18n::tr("Choose my photo"), 398, 282, 354, [](lv_event_t *) { open_upload(); });
++  label(settings, i18n::tr("Welcome at startup"), &inter_16, 0xF2E9DC, 398, 351);
+   welcome_switch = lv_switch_create(settings); lv_obj_set_pos(welcome_switch, 694, 345); lv_obj_set_size(welcome_switch, 56, 32);
+   lv_obj_add_event_cb(welcome_switch, [](lv_event_t *event) { net::set_pref_welcome(lv_obj_has_state(static_cast<lv_obj_t *>(lv_event_get_target(event)), LV_STATE_CHECKED)); }, LV_EVENT_VALUE_CHANGED, nullptr);
+-  button(settings, "Preview", 24, 386, 166, [](lv_event_t *) { showing = true; refresh_idle(); visible(idle, true); lv_obj_move_foreground(idle); });
+-  button(settings, "Welcome preview", 206, 386, 166, [](lv_event_t *) { start_welcome(); });
+-  label(settings, "Sleep time and night mode follow Screen settings.", &inter_14, 0x8E8E93, 398, 413);
++  button(settings, i18n::tr("Preview"), 24, 386, 166, [](lv_event_t *) { showing = true; refresh_idle(); visible(idle, true); lv_obj_move_foreground(idle); });
++  button(settings, i18n::tr("Welcome preview"), 206, 386, 166, [](lv_event_t *) { start_welcome(); });
++  label(settings, i18n::tr("Sleep time and night mode follow Screen settings."), &inter_14, 0x8E8E93, 398, 413);
+   // A preview is dismissed on its first touch, without activating underlying settings.
+   lv_obj_add_flag(idle, LV_OBJ_FLAG_CLICKABLE);
+   lv_obj_add_event_cb(idle, [](lv_event_t *) { show_saver(false); }, LV_EVENT_PRESSED, nullptr);
+   upload_page = rect(nullptr, 0, 0, 800, 480, 0x080808);
+-  button(upload_page, "< Back", 24, 44, 106, [](lv_event_t *) { net::appearance_page(false); refresh_preview(); lv_screen_load(settings); });
+-  label(upload_page, "Your background", &inter_26b, 0xF2E9DC, 150, 52);
++  button(upload_page, i18n::tr("< Back"), 24, 44, 106, [](lv_event_t *) { net::appearance_page(false); refresh_preview(); lv_screen_load(settings); });
++  label(upload_page, i18n::tr("Your background"), &inter_26b, 0xF2E9DC, 150, 52);
+   upload_address = label(upload_page, "", &inter_20, 0xD8C4A5, 48, 130); lv_obj_set_width(upload_address, 704);
+-  label(upload_page, "Uploads are enabled only while this page is open.", &inter_16, 0x8E8E93, 48, 400);
++  label(upload_page, i18n::tr("Uploads are enabled only while this page is open."), &inter_16, 0x8E8E93, 48, 400);
+ }
+ }
+ void begin() {
+
