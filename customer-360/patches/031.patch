@@ -1,0 +1,99 @@
+--- a/src/ui_setup.inc
++++ b/src/ui_setup.inc
+@@ -10,6 +10,7 @@
+   if (!setup_tour_replay && !panel_setup::save(next)) {
+     show_toast("Could not save setup. Please try again."); return;
+   }
++  show(toast, false);
+   setup_view = next;
+   open_setup(launch);
+ }
+@@ -23,8 +24,14 @@
+ void setup_action(lv_event_t *) {
+   switch (setup_view) {
+     case SetupStep::Welcome: move_setup(SetupStep::Wifi, true); break;
+-    case SetupStep::Wifi: open_wifi(); break;
+-    case SetupStep::Account: open_account(); break;
++    case SetupStep::Wifi:
++      if(net::state()==net::Wifi::Connected) move_setup(SetupStep::Account,true);
++      else open_wifi();
++      break;
++    case SetupStep::Account:
++      if(cloud::state()==cloud::Acct::SignedIn) move_setup(SetupStep::Machine);
++      else open_account();
++      break;
+     case SetupStep::Machine:
+       if (link != LinkState::Connected) { show_toast("Turn on your Studio and keep it nearby."); return; }
+       if (!ble_link::remember_current()) { show_toast("Please wait for the machine connection."); return; }
+@@ -83,6 +90,7 @@
+   char progress[64]; snprintf(progress, sizeof progress, "SETUP %d / 6%s", phase, s>=4 && s<=8 ? "  -  QUICK GUIDE" : "");
+   set_text(setup_progress, setup_tour_replay ? "QUICK GUIDE" : progress);
+   const char *action = s==0 ? "Let's begin" : s==1 ? "Choose Wi-Fi" : s==2 ? "Open sign-in" : s==3 ? "This is my Studio" : s==9 ? "Start using 3Dup" : "Next";
++  if ((s==1 && net::state()==net::Wifi::Connected) || (s==2 && cloud::state()==cloud::Acct::SignedIn)) action="Continue";
+   set_text(setup_next_label, action);
+   show(setup_back, s>0); show(setup_logo, s==0);
+   for (int i=0; i<5; ++i) {
+@@ -114,9 +122,9 @@
+   if (!panel_setup::active() || setup_tour_replay || appearance::welcome_visible()) return;
+   const auto s = panel_setup::step();
+   const auto screen = lv_screen_active();
+-  if (s == SetupStep::Wifi && net::state()==net::Wifi::Connected && (screen==scr_wifi || screen==scr_setup))
++  if (s == SetupStep::Wifi && net::state()==net::Wifi::Connected && screen==scr_wifi)
+     move_setup(SetupStep::Account, true);
+-  else if (s==SetupStep::Account && cloud::state()==cloud::Acct::SignedIn && (screen==scr_account || screen==scr_setup))
++  else if (s==SetupStep::Account && cloud::state()==cloud::Acct::SignedIn && screen==scr_account)
+     move_setup(SetupStep::Machine);
+   else if (s==SetupStep::Machine && screen==scr_setup) {
+     char body[320];
+--- a/sim/sim_main.cpp
++++ b/sim/sim_main.cpp
+@@ -51,7 +51,8 @@
+   return true;
+ }
+ bool poll(UiEvent &e) { if (evq.empty()) return false; e = evq.front(); evq.pop_front(); return true; }
+-bool panel_can_restart() { return true; }
++bool allow_restart=true;
++bool panel_can_restart() { return allow_restart; }
+ LinkState state() { return LinkState::Connected; }
+ static bool remembered=false;
+ bool remember_current() { remembered=true; return true; }
+--- a/sim/customer_test.inc
++++ b/sim/customer_test.inc
+@@ -1,7 +1,9 @@
++namespace ble_link { extern bool allow_restart; }
+ namespace net { void sim_state(Wifi); }
+ namespace cloud { void sim_state(Acct); }
+ namespace panel_setup { extern bool reset_requested; }
+ static lv_obj_t *find_text(lv_obj_t *obj, const char *label) {
++  if (lv_obj_has_flag(obj,LV_OBJ_FLAG_HIDDEN)) return nullptr;
+   if (lv_obj_check_type(obj,&lv_label_class) && !strcmp(lv_label_get_text(obj),label)) return obj;
+   for (uint32_t i=0;i<lv_obj_get_child_count(obj);++i)
+     if (auto *hit=find_text(lv_obj_get_child(obj,i),label)) return hit;
+@@ -9,6 +11,7 @@
+ }
+ static void click_text(const char *label, bool overlay=false) {
+   auto *hit=find_text(overlay?lv_layer_top():lv_screen_active(),label); assert(hit);
++  lv_display_trigger_activity(nullptr);
+   lv_obj_send_event(lv_obj_get_parent(hit),LV_EVENT_CLICKED,nullptr); run(400);
+ }
+ static void test_customer() {
+@@ -25,6 +28,8 @@
+   assert(panel_setup::step()==S::Account);save("customer-03-account.ppm");
+   cloud::sim_state(cloud::Acct::BadLogin);run(400);assert(panel_setup::step()==S::Account);
+   cloud::sim_state(cloud::Acct::SignedIn);run(400);assert(panel_setup::step()==S::Machine);
++  click_text("Back");run(1000);assert(panel_setup::step()==S::Account);
++  click_text("Continue");assert(panel_setup::step()==S::Machine);
+   // Confirming a machine is required, not just detecting any Bluetooth device.
+   run(1000);assert(panel_setup::step()==S::Machine);
+   ev(UiEvType::Link,int(LinkState::Connected),0,"XBLOOM TEST");run(400);
+@@ -39,6 +44,9 @@
+   ui::sim_show(9,0);run(400);save("customer-07-settings.ppm");
+   click_text("Quick guide");click_text("Back");assert(!panel_setup::active());
+   ui::sim_show(9,0);run(400);
++  ble_link::allow_restart=false;click_text("Factory reset");
++  assert(!find_text(lv_layer_top(),"Erase panel") && !panel_setup::reset_requested);
++  ble_link::allow_restart=true;run(5000);
+   click_text("Factory reset");save("customer-08-reset.ppm");
+   click_text("Cancel",true);assert(!panel_setup::reset_requested);
+   click_text("Factory reset");click_text("Erase panel",true);
+
