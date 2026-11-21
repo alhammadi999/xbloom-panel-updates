@@ -1,0 +1,340 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1289,14 +1354,14 @@
+   const int dw = 456, dh = 240, pad = 28, bw = (dw - 2 * pad - G) / 2, bh = 56;
+   lv_obj_t *dlg = box(modal, 0, 0, dw, dh, 0x1C1C1E, 24);
+   lv_obj_center(dlg);
+-  lv_obj_t *t = text(dlg, "Place your cup", &inter_26b, hex(TEXT));
++  lv_obj_t *t = text(dlg, i18n::tr("Place your cup"), &inter_26b, hex(TEXT));
+   lv_obj_set_pos(t, pad, pad);
+-  lv_obj_t *s = text(dlg, "The recipe is loaded on the machine.\nPut your cup on the scale, then start.",
++  lv_obj_t *s = text(dlg, i18n::tr("The recipe is loaded on the machine.\nPut your cup on the scale, then start."),
+                      &inter_16, hex(SUB));
+   lv_obj_set_style_text_line_space(s, 4, 0);
+   lv_obj_set_pos(s, pad, pad + 46);
+   lv_obj_t *cancel = box(dlg, pad, dh - pad - bh, bw, bh, 0x2C2C2E, bh / 2);
+-  lv_obj_center(text(cancel, "Cancel", &inter_20b, hex(TEXT)));
++  lv_obj_center(text(cancel, i18n::tr("Cancel"), &inter_20b, hex(TEXT)));
+   pressable(cancel);
+   on_click(cancel, [](lv_event_t *) {
+     close_modal();
+@@ -1306,7 +1371,7 @@
+     refresh_detail();
+   });
+   lv_obj_t *go = box(dlg, pad + bw + G, dh - pad - bh, bw, bh, 0xFFFFFF, bh / 2);
+-  lv_obj_center(text(go, "Brew", &inter_20b, hex(0x000000)));
++  lv_obj_center(text(go, i18n::tr("Brew"), &inter_20b, hex(0x000000)));
+   pressable(go);
+   on_click(go, [](lv_event_t *) {
+     close_modal();
+@@ -1361,7 +1426,7 @@
+   snprintf(n, sizeof n, "%d", r.n_pours);
+   lv_obj_t *num = text(hdr, n, &inter_120_bold, ghost);
+   baseline_align(num, LV_ALIGN_BOTTOM_RIGHT, -16, -6);
+-  lv_obj_t *pw = text(hdr, "POURS", &inter_26b, ghost);
++  lv_obj_t *pw = text(hdr, i18n::tr("POURS"), &inter_26b, ghost);
+   lv_obj_align(pw, LV_ALIGN_TOP_RIGHT, -16, 12);
+   lv_obj_t *cup = cup_icon(hdr, r.cup_type, ink);
+   lv_obj_set_pos(cup, 20, 20);
+@@ -1371,7 +1436,7 @@
+   lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+   lv_obj_set_width(name, D_LEFT_W - 140);
+   lv_obj_set_pos(name, 20, 66);
+-  char buf[48];
++  char buf[144];
+   snprintf(buf, sizeof buf, "1:%g", ratio_of(r));
+   lv_obj_t *ratio = text(hdr, buf, &inter_34b, dark);
+   baseline_align(ratio, LV_ALIGN_BOTTOM_LEFT, 20, 22);
+@@ -1380,7 +1445,7 @@
+   lv_obj_set_style_bg_opa(sep, LV_OPA_40, 0);
+   lv_obj_update_layout(ratio);
+   lv_obj_align_to(sep, ratio, LV_ALIGN_OUT_RIGHT_MID, 12, 2);
+-  snprintf(buf, sizeof buf, "%.0fml", r.total_water());
++  snprintf(buf, sizeof buf, i18n::tr("%.0fml"), r.total_water());
+   lv_obj_t *vol = text(hdr, buf, &inter_34b, dark);
+   lv_obj_update_layout(sep);
+   baseline_align(vol, LV_ALIGN_BOTTOM_LEFT, lv_obj_get_x(sep) + 14, 22);
+@@ -1401,7 +1466,7 @@
+   d_start = box(scr_detail, M, D_BTN_Y, D_LEFT_W, D_BTN_H, bg, D_BTN_H / 2);
+   d_start_icon = text(d_start, LV_SYMBOL_PLAY, &lv_font_montserrat_28, hex(BG_MOD));
+   lv_obj_align(d_start_icon, LV_ALIGN_TOP_MID, 0, 16);
+-  d_start_lbl = text(d_start, "START", &inter_20b, hex(BG_MOD));
++  d_start_lbl = text(d_start, i18n::tr("START"), &inter_20b, hex(BG_MOD));
+   baseline_align(d_start_lbl, LV_ALIGN_BOTTOM_MID, 0, 18);
+   on_click(d_start, on_start);
+   pressable(d_start);
+@@ -1413,7 +1478,7 @@
+   pressable(d_stop);
+ 
+   // ---- pours chart ----
+-  lv_obj_t *pt = text(scr_detail, "Pours", &inter_26b, hex(TEXT));
++  lv_obj_t *pt = text(scr_detail, i18n::tr("Pours"), &inter_26b, hex(TEXT));
+   lv_obj_set_pos(pt, D_RIGHT_X, D_TOP - 4);
+   const int ch_y = D_TOP + 44, ch_h = H - M - ch_y;
+   lv_obj_t *chart = group(scr_detail, D_RIGHT_X, ch_y, D_RIGHT_W, ch_h);
+@@ -1441,7 +1506,7 @@
+       lv_obj_set_pos(l, x, y);
+       return l;
+     };
+-    snprintf(buf, sizeof buf, "%.0fml", po.volume_ml);
++    snprintf(buf, sizeof buf, i18n::tr("%.0fml"), po.volume_ml);
+     centered(buf, narrow ? &inter_16 : &inter_20b, hex(TEXT), base - h - 30);
+ 
+     lv_obj_t *row = group(chart, x, base + 14, cw, 22);
+@@ -1454,14 +1519,14 @@
+ 
+     char nm[24];
+     if (narrow) {
+-      if (i == 0) strcpy(nm, "Bloom");
++      if (i == 0) strcpy(nm, i18n::tr("Bloom"));
+       else snprintf(nm, sizeof nm, "P%d", i + 1);
+     } else {
+       char tmp[24];
+       strlcpy(nm, library::pour_name(p, i, tmp), sizeof nm);
+     }
+     centered(nm, narrow ? &inter_16 : &inter_20, hex(TEXT), base + 46);
+-    snprintf(buf, sizeof buf, po.agitate_after || po.agitate_before ? "%ds ~" : "%ds", po.pause_s);
++    snprintf(buf, sizeof buf, po.agitate_after || po.agitate_before ? i18n::tr("%ds ~") : i18n::tr("%ds"), po.pause_s);
+     centered(buf, &inter_16, hex(MUTED), base + 78);
+   }
+   refresh_detail();
+@@ -1501,20 +1566,20 @@
+   const xb::Recipe &r = pp->r;
+   const bool mine_active = active == cur;
+   const bool brewing = mine_active && (flow == Flow::Brewing || flow == Flow::Paused);
+-  char buf[32];
+-  const char *lbl_idle[3] = {"Dose", "Grind Size", "RPM"};
+-  const char *lbl_brew[3] = {"Scale", "Water", "Time"};
++  char buf[96];
++  const char *lbl_idle[3] = {i18n::tr("Dose"), i18n::tr("Grind Size"), i18n::tr("RPM")};
++  const char *lbl_brew[3] = {i18n::tr("Scale"), i18n::tr("Water"), i18n::tr("Time")};
+   for (int i = 0; i < 3; ++i) set_text(d_stats[i][0], (brewing ? lbl_brew : lbl_idle)[i]);
+   if (brewing) {
+     snprintf(buf, sizeof buf, "%.1f", weight_g);
+-    set_stat(0, buf, "g");
++    set_stat(0, buf, i18n::tr("g"));
+     snprintf(buf, sizeof buf, "%.0f", water_ml);
+-    set_stat(1, buf, "ml");
++    set_stat(1, buf, i18n::tr("ml"));
+     fmt_min_sec(buf, sizeof buf, brew_start_ms ? millis() - brew_start_ms : 0);
+     set_stat(2, buf, "");
+   } else {
+     snprintf(buf, sizeof buf, "%g", r.dose_g);
+-    set_stat(0, buf, "g");
++    set_stat(0, buf, i18n::tr("g"));
+     snprintf(buf, sizeof buf, "%d", r.grind_size);
+     set_stat(1, buf, "");
+     snprintf(buf, sizeof buf, "%d", r.rpm);
+@@ -1529,19 +1594,19 @@
+     lv_obj_set_height(d_cols[i].fill, fh);
+   }
+ 
+-  const char *label = "START", *icon = LV_SYMBOL_PLAY;
++  const char *label = i18n::tr("START"), *icon = LV_SYMBOL_PLAY;
+   const bool other_busy = active && !mine_active && flow != Flow::Idle;
+   if (mine_active) {
+     switch (flow) {
+-      case Flow::Loading: label = "LOADING"; icon = LV_SYMBOL_REFRESH; break;
+-      case Flow::Loaded: label = "READY"; break;
+-      case Flow::Starting: label = "STARTING"; icon = LV_SYMBOL_REFRESH; break;
+-      case Flow::Brewing: label = "PAUSE"; icon = LV_SYMBOL_PAUSE; break;
+-      case Flow::Paused: label = "RESUME"; icon = LV_SYMBOL_PLAY; break;
++      case Flow::Loading: label = i18n::tr("LOADING"); icon = LV_SYMBOL_REFRESH; break;
++      case Flow::Loaded: label = i18n::tr("READY"); break;
++      case Flow::Starting: label = i18n::tr("STARTING"); icon = LV_SYMBOL_REFRESH; break;
++      case Flow::Brewing: label = i18n::tr("PAUSE"); icon = LV_SYMBOL_PAUSE; break;
++      case Flow::Paused: label = i18n::tr("RESUME"); icon = LV_SYMBOL_PLAY; break;
+       default: break;
+     }
+   } else if (other_busy) {
+-    label = "BUSY";
++    label = i18n::tr("BUSY");
+   }
+   set_text(d_start_lbl, label);
+   set_text(d_start_icon, icon);
+@@ -1552,15 +1617,15 @@
+ }
+ 
+ void on_start(lv_event_t *) {
+-  if (machine_waiting) return show_toast("Wait for the Studio settings operation.");
+-  if (link != LinkState::Connected) return show_toast("Not connected to the xBloom");
++  if (machine_waiting) return show_toast(i18n::tr("Wait for the Studio settings operation."));
++  if (link != LinkState::Connected) return show_toast(i18n::tr("Not connected to the xBloom"));
+   if (active == cur) {
+     if (flow == Flow::Brewing) post(BleCmdType::Pause);
+     else if (flow == Flow::Paused) post(BleCmdType::Resume);
+     else if (flow == Flow::Loaded) show(modal, true);
+     return;
+   }
+-  if (flow != Flow::Idle) return show_toast("Another recipe is on the machine");
++  if (flow != Flow::Idle) return show_toast(i18n::tr("Another recipe is on the machine"));
+   const PanelRecipe *pp = find(cur);
+   if (!pp) return;
+   if (const char *err = xb::validate(pp->r)) return show_toast(err);
+@@ -1583,7 +1648,7 @@
+   if (s <= 12) return "Espresso";
+   if (s <= 24) return "Moka Pot";
+   if (s <= 32) return "AeroPress";
+-  if (s <= 55) return "Pourover\nCoffee Maker";
++  if (s <= 55) return i18n::tr("Pourover\nCoffee Maker");
+   if (s <= 70) return "French Press";
+   return "Cold Brew";
+ }
+@@ -1607,7 +1672,7 @@
+   module_header(scr_grinder, Dots::Grinder, grinder_back);
+   gr_weight = readout(scr_grinder, "0.0g", M);
+   const int ch = (MOD_BOTTOM - MOD_TOP - G) / 2;
+-  gr_size_card = value_card(scr_grinder, M, MOD_TOP, MOD_LEFT_W, ch, "Grind size", "Level", GRINDER_FG,
++  gr_size_card = value_card(scr_grinder, M, MOD_TOP, MOD_LEFT_W, ch, i18n::tr("Grind size"), i18n::tr("Level"), GRINDER_FG,
+                             GRINDER_FILL, &inter_96_num, 1, 80, 1, g_size, "%.0f", [](double v, bool rel) {
+                               g_size = (int)v;
+                               place_grind_use();
+@@ -1616,7 +1681,7 @@
+   gr_use = text(gr_size_card->card, "", &inter_20, hex(GRINDER_FG));
+   lv_obj_set_style_text_align(gr_use, LV_TEXT_ALIGN_RIGHT, 0);
+   place_grind_use();
+-  value_card(scr_grinder, M, MOD_TOP + ch + G, MOD_LEFT_W, ch, "Grinder Speed", "RPM", GRINDER_FG, GRINDER_FILL,
++  value_card(scr_grinder, M, MOD_TOP + ch + G, MOD_LEFT_W, ch, i18n::tr("Grinder Speed"), i18n::tr("RPM"), GRINDER_FG, GRINDER_FILL,
+              &inter_96_num, 60, 120, 10, g_rpm, "%.0f", [](double v, bool rel) {
+                g_rpm = (int)v;
+                if (rel) post(BleCmdType::GrinderEnter, g_size, g_rpm);
+@@ -1624,7 +1689,7 @@
+   const int d = 136;
+   round_button(scr_grinder, MOD_RIGHT_X + (MOD_RIGHT_W - d) / 2, MOD_TOP + (MOD_BOTTOM - MOD_TOP - d) / 2, d,
+                LV_SYMBOL_PLAY, &lv_font_montserrat_28, &gr_play_icon, [](lv_event_t *) {
+-                 if (link != LinkState::Connected) return show_toast("Not connected to the xBloom");
++                 if (link != LinkState::Connected) return show_toast(i18n::tr("Not connected to the xBloom"));
+                  grinding = !grinding;
+                  post(grinding ? BleCmdType::GrinderStart : BleCmdType::GrinderStop, g_size, g_rpm);
+                  set_text(gr_play_icon, grinding ? LV_SYMBOL_STOP : LV_SYMBOL_PLAY);
+@@ -1659,18 +1724,18 @@
+   br_weight = readout(scr_brewer, "0.0g", M);
+   br_timer = readout(scr_brewer, "00'00''", M + MOD_LEFT_W, true);
+   const int gap = 14, ch = (MOD_BOTTOM - MOD_TOP - 2 * gap) / 3;
+-  value_card(scr_brewer, M, MOD_TOP, MOD_LEFT_W, ch, "Volume", "ml", BREWER_FG, BREWER_FILL, &inter_64b, 30, 500,
++  value_card(scr_brewer, M, MOD_TOP, MOD_LEFT_W, ch, i18n::tr("Volume"), i18n::tr("ml"), BREWER_FG, BREWER_FILL, &inter_64b, 30, 500,
+              5, b_volume, "%.0f", [](double v, bool) { b_volume = (int)v; });
+-  value_card(scr_brewer, M, MOD_TOP + ch + gap, MOD_LEFT_W, ch, "Temperature", "°C", BREWER_FG, BREWER_FILL,
++  value_card(scr_brewer, M, MOD_TOP + ch + gap, MOD_LEFT_W, ch, i18n::tr("Temperature"), "°C", BREWER_FG, BREWER_FILL,
+              &inter_64b, 39, 96, 1, b_temp, "%.0f", [](double v, bool rel) {
+                b_temp = (int)v;
+                if (rel) post(BleCmdType::BrewerTemp, 0, 0, xb::temp_display_to_wire(b_temp));
+              });
+-  value_card(scr_brewer, M, MOD_TOP + 2 * (ch + gap), MOD_LEFT_W, ch, "Flow rate", "ml/s", BREWER_FG, BREWER_FILL,
++  value_card(scr_brewer, M, MOD_TOP + 2 * (ch + gap), MOD_LEFT_W, ch, i18n::tr("Flow rate"), i18n::tr("ml/s"), BREWER_FG, BREWER_FILL,
+              &inter_64b, 3.0, 3.5, 0.1, b_flow, "%.1f", [](double v, bool) { b_flow = (float)v; });
+ 
+   const uint8_t order[3] = {xb::PAT_CENTERED, xb::PAT_CIRCULAR, xb::PAT_SPIRAL};
+-  const char *names[3] = {"Centered", "Circular", "Spiral"};
++  const char *names[3] = {i18n::tr("Centered"), i18n::tr("Circular"), i18n::tr("Spiral")};
+   const int bh = 56, bgap = 12;
+   for (int i = 0; i < 3; ++i) {
+     pat_btn[i] = option_button(scr_brewer, MOD_RIGHT_X, MOD_TOP + i * (bh + bgap), MOD_RIGHT_W, bh);
+@@ -1685,7 +1750,7 @@
+   const int d = 100;
+   round_button(scr_brewer, MOD_RIGHT_X + (MOD_RIGHT_W - d) / 2, MOD_BOTTOM - d, d, LV_SYMBOL_PLAY,
+                &lv_font_montserrat_28, &br_play_icon, [](lv_event_t *) {
+-                 if (link != LinkState::Connected) return show_toast("Not connected to the xBloom");
++                 if (link != LinkState::Connected) return show_toast(i18n::tr("Not connected to the xBloom"));
+                  pouring = !pouring;
+                  if (pouring) {
+                    pour_start_ms = millis();
+@@ -1702,11 +1767,11 @@
+ // SCALE
+ // ============================================================================
+ void render_scale() {
+-  char buf[16];
++  char buf[48];
+   if (unit == 1) snprintf(buf, sizeof buf, "%.2f", weight_g / 28.3495f);
+   else snprintf(buf, sizeof buf, "%.1f", weight_g);
+   set_text(sc_value, buf);
+-  set_text(sc_unit, unit == 0 ? "g" : unit == 1 ? "oz" : "ml");
++  set_text(sc_unit, unit == 0 ? i18n::tr("g") : unit == 1 ? i18n::tr("oz") : i18n::tr("ml"));
+   lv_obj_update_layout(sc_unit);
+   // centre value + unit together
+   lv_obj_align(sc_value, LV_ALIGN_CENTER, -(lv_obj_get_width(sc_unit) + 6) / 2, 0);
+@@ -1749,8 +1814,8 @@
+   lv_obj_set_style_border_width(card, 2, 0);
+   lv_obj_t *inner = box(card, 6, 6, MOD_LEFT_W - 12, MOD_BOTTOM - MOD_TOP - 12, SCALE_FILL, R - 6);
+   sc_value = text(inner, "0.0", &inter_96_num, hex(0x5FB5A4));
+-  sc_unit = text(inner, "g", &inter_34b, hex(0x5FB5A4));
+-  const char *u[3] = {"g", "oz", "ml"};
++  sc_unit = text(inner, i18n::tr("g"), &inter_34b, hex(0x5FB5A4));
++  const char *u[3] = {i18n::tr("g"), i18n::tr("oz"), i18n::tr("ml")};
+   const int bh = 60, bgap = 12;
+   for (int i = 0; i < 3; ++i) {
+     unit_btn[i] = option_button(scr_scale, MOD_RIGHT_X, MOD_TOP + i * (bh + bgap), MOD_RIGHT_W, bh);
+@@ -1919,9 +1984,9 @@
+   lv_label_set_long_mode(cf_text, LV_LABEL_LONG_WRAP);
+   lv_obj_set_width(cf_text, dw - 2 * pad);
+   lv_obj_set_pos(cf_text, pad, pad + 44);
+-  lv_obj_t *no = pill(dlg, pad, dh - pad - bh, bw, bh, "Cancel", 0x2C2C2E, TEXT, [](lv_event_t *) { show(cf_layer, false); });
++  lv_obj_t *no = pill(dlg, pad, dh - pad - bh, bw, bh, i18n::tr("Cancel"), 0x2C2C2E, TEXT, [](lv_event_t *) { show(cf_layer, false); });
+   (void)no;
+-  lv_obj_t *yes = pill(dlg, pad + bw + G, dh - pad - bh, bw, bh, "Delete", 0xFF453A, TEXT, [](lv_event_t *) {
++  lv_obj_t *yes = pill(dlg, pad + bw + G, dh - pad - bh, bw, bh, i18n::tr("Delete"), 0xFF453A, TEXT, [](lv_event_t *) {
+     show(cf_layer, false);
+     if (cf_action) cf_action();
+   });
+@@ -2049,23 +2114,23 @@
+ void refresh_editor() {
+   const xb::Recipe &r = ed.r;
+   const xb::Pour &q = r.pours[ed_pour];
+-  char buf[48];
+-  set_text(ed_name, r.name[0] ? r.name : "Untitled");
+-  snprintf(buf, sizeof buf, "%gg", r.dose_g);
++  char buf[144];
++  set_text(ed_name, r.name[0] ? r.name : i18n::tr("Untitled"));
++  snprintf(buf, sizeof buf, i18n::tr("%gg"), r.dose_g);
+   set_text(ed_val[F_DOSE], buf);
+   snprintf(buf, sizeof buf, "%d", r.grind_size);
+   set_text(ed_val[F_GRIND], buf);
+   snprintf(buf, sizeof buf, "%d", r.rpm);
+   set_text(ed_val[F_RPM], buf);
+-  snprintf(buf, sizeof buf, "%.0f ml", q.volume_ml);
++  snprintf(buf, sizeof buf, i18n::tr("%.0f ml"), q.volume_ml);
+   set_text(ed_val[F_VOL], buf);
+   snprintf(buf, sizeof buf, "%.0f°C", q.temp_c);
+   set_text(ed_val[F_TEMP], buf);
+-  snprintf(buf, sizeof buf, "%ds", q.pause_s);
++  snprintf(buf, sizeof buf, i18n::tr("%ds"), q.pause_s);
+   set_text(ed_val[F_WAIT], buf);
+   snprintf(buf, sizeof buf, "%.1f", q.flow);
+   set_text(ed_val[F_FLOW], buf);
+-  snprintf(buf, sizeof buf, "1:%g  |  %.0f ml", library::ratio_denominator(r), r.total_water());
++  snprintf(buf, sizeof buf, i18n::tr("1:%g  |  %.0f ml"), library::ratio_denominator(r), r.total_water());
+   set_text(ed_summary, buf);
+   select_option(ed_cup_btn, 4, r.cup_type - 1);
+   const uint8_t order[3] = {xb::PAT_CENTERED, xb::PAT_CIRCULAR, xb::PAT_SPIRAL};
+@@ -2083,7 +2148,7 @@
+   if (const char *err = xb::validate(ed.r)) return show_toast(err);
+   store_recipe(ed);
+   cur = ed.uid ? ed.uid : lib.front().uid;
+-  if (cloud::state() != cloud::Acct::SignedIn) show_toast("Saved on the panel. Sign in to save it to your account too.");
++  if (cloud::state() != cloud::Acct::SignedIn) show_toast(i18n::tr("Saved on the panel. Sign in to save it to your account too."));
+   open_recipe(cur, Anim::PopRight);
+ }
+ 
+@@ -2093,14 +2158,14 @@
+     if (ed_uid && find(ed_uid)) open_recipe(ed_uid, Anim::PopRight);
+     else load(scr_home, Anim::PopRight);
+   });
+-  ed_title = text(scr_edit, "Edit recipe", &inter_26b, hex(TEXT));
++  ed_title = text(scr_edit, i18n::tr("Edit recipe"), &inter_26b, hex(TEXT));
+   lv_obj_set_pos(ed_title, M + 44, SB + 10);
+-  pill(scr_edit, W - M - 110, SB + 4, 110, 44, "Save", 0xFFFFFF, 0x000000, editor_save);
+-  ed_delete = pill(scr_edit, W - M - 110 - 12 - 110, SB + 4, 110, 44, "Delete", 0x2C2C2E, 0xFF6B6B, [](lv_event_t *) {
+-    confirm("Delete recipe?", cloud::state() == cloud::Acct::SignedIn && ed.id[0]
+-                                  ? "It will also be deleted from your xBloom account."
+-                                  : "It will be removed from the panel.",
+-            "Delete", [] {
++  pill(scr_edit, W - M - 110, SB + 4, 110, 44, i18n::tr("Save"), 0xFFFFFF, 0x000000, editor_save);
++  ed_delete = pill(scr_edit, W - M - 110 - 12 - 110, SB + 4, 110, 44, i18n::tr("Delete"), 0x2C2C2E, 0xFF6B6B, [](lv_event_t *) {
++    confirm(i18n::tr("Delete recipe?"), cloud::state() == cloud::Acct::SignedIn && ed.id[0]
++                                  ? i18n::tr("It will also be deleted from your xBloom account.")
++                                  : i18n::tr("It will be removed from the panel."),
++            i18n::tr("Delete"), [] {
+               delete_recipe(ed_uid);
+               load(scr_home, Anim::PopRight);
+             });
+
