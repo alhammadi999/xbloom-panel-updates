@@ -1,0 +1,78 @@
+--- a/src/ui_machine.inc
++++ b/src/ui_machine.inc
+@@ -41,14 +41,14 @@
+                   i == machine::Display ? (value == 1 ? 0 : value == 8 ? 1 : 2) : value;
+       lv_dropdown_set_selected(input, index);
+     }
+-    const char *missing = "Unavailable";
++    const char *missing = i18n::tr("Unavailable");
+     if (i == machine::Radius || i == machine::Vibration) {
+       const auto &reply = i == machine::Radius ? displayed_settings.radius_reply : displayed_settings.vibration_reply;
+-      missing = !reply.seen ? "No reply" :
+-        !machine::advanced_format(reply) ? "Unknown reply" :
+-        i == machine::Radius && displayed_settings.radius_base < 0 ? "No baseline" : "Unknown value";
++      missing = !reply.seen ? i18n::tr("No reply") :
++        !machine::advanced_format(reply) ? i18n::tr("Unknown reply") :
++        i == machine::Radius && displayed_settings.radius_base < 0 ? i18n::tr("No baseline") : i18n::tr("Unknown value");
+     }
+-    lv_dropdown_set_text(input, known ? nullptr : machine_waiting ? "Reading..." : missing);
++    lv_dropdown_set_text(input, known ? nullptr : machine_waiting ? i18n::tr("Reading...") : missing);
+     if (known && !machine_waiting && link == LinkState::Connected) lv_obj_remove_state(input, LV_STATE_DISABLED);
+     else lv_obj_add_state(input, LV_STATE_DISABLED);
+   }
+@@ -56,12 +56,12 @@
+     if (!machine_waiting && link == LinkState::Connected) lv_obj_remove_state(reference_button,LV_STATE_DISABLED);
+     else lv_obj_add_state(reference_button,LV_STATE_DISABLED);
+   }
+-  if (machine_fw) set_text(machine_fw,displayed_settings.firmware[0] ? displayed_settings.firmware : "Not reported");
++  if (machine_fw) set_text(machine_fw,displayed_settings.firmware[0] ? displayed_settings.firmware : i18n::tr("Not reported"));
+ }
+ void request_machine_settings(bool save) {
+   if (machine_waiting) return;
+   if (link != LinkState::Connected || ui::busy()) {
+-    machine_note( link != LinkState::Connected ? "Connect the Studio, then tap Refresh." : "Finish the active task, then refresh.");
++    machine_note( link != LinkState::Connected ? i18n::tr("Connect the Studio, then tap Refresh.") : i18n::tr("Finish the active task, then refresh."));
+     return;
+   }
+   saving_slots = false;
+@@ -77,8 +77,8 @@
+   } else displayed_settings = {};
+   machine_waiting = ble_link::post(cmd);
+   machine_started = millis();
+-  machine_note( !machine_waiting ? "Queue busy. Tap Refresh." :
+-           save ? "Saving and checking the Studio..." : "Reading from the Studio...");
++  machine_note( !machine_waiting ? i18n::tr("Queue busy. Tap Refresh.") :
++           save ? i18n::tr("Saving and checking the Studio...") : i18n::tr("Reading from the Studio..."));
+   paint_machine_fields();
+ }
+ void machine_choice(lv_event_t *e) {
+@@ -92,11 +92,11 @@
+     lv_dropdown_get_selected_str(input, label, sizeof label);
+     paint_machine_fields(); // Keep the confirmed value until readback.
+     if (chosen_value == displayed_settings.value[i]) return;
+-    snprintf(body, sizeof body, "%s: %s.%s", machine_labels[i], label,
+-             i == machine::Water && chosen_value == 1 ? " Connect the water line first." :
+-             i == machine::Radius ? " A wide range can spill hot water." :
+-             i == machine::Vibration ? " Excessive vibration can spill coffee." : "");
+-    confirm("Apply to Studio?", body, "Apply", [] { request_machine_settings(true); });
++    snprintf(body, sizeof body, "%s: %s.%s", i18n::tr(machine_labels[i]), label,
++             i == machine::Water && chosen_value == 1 ? i18n::tr(" Connect the water line first.") :
++             i == machine::Radius ? i18n::tr(" A wide range can spill hot water.") :
++             i == machine::Vibration ? i18n::tr(" Excessive vibration can spill coffee.") : "");
++    confirm(i18n::tr("Apply to Studio?"), body, i18n::tr("Apply"), [] { request_machine_settings(true); });
+     return;
+   }
+ }
+@@ -107,9 +107,9 @@
+   if (already_open) request_machine_settings(false);
+ }
+ void open_machine_slots(lv_event_t *) {
+-  if (machine_waiting) return show_toast("Wait for the Studio reply.");
++  if (machine_waiting) return show_toast(i18n::tr("Wait for the Studio reply."));
+   slot_ids.clear();
+-  std::string options="Choose recipe";
++  std::string options=i18n::tr("Choose recipe");
+   for (const auto &p : lib) if (!p.bypass && !xb::validate(p.r)) {
+     slot_ids.push_back(p.uid); options += "\n";
+     std::string name=p.r.name;
+
