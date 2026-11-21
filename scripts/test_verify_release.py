@@ -25,7 +25,7 @@ class ReleaseTests(unittest.TestCase):
         return verify(self.root, "pilot")
 
     def test_matching_image(self):
-        self.assertEqual(self.check()["version"], "3.4.0")
+        self.assertEqual(self.check()["version"], self.feed["version"])
 
     def test_renamed_old_firmware_rejected(self):
         self.feed["version"] = "3.4.1"
