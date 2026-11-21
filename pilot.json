@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.5.12",
-  "bytes": 2896256,
-  "sha256": "acd0f67d189dea920e6eddebd97aded64db801b4b470818093bda9228d42868f",
-  "notes": "Studio settings: Pro/Auto, A/B/C presets, advanced levels, machine display, device info and maintenance guides. Fix C2 reads; add explicit L3 reference.",
+  "version": "3.6.0",
+  "bytes": 5629600,
+  "sha256": "4b62f7f69e511aeba6c4c6c27602b61dde0421a6df8ac6f87f8842c01e917ae1",
+  "notes": "3Dup xBloom Panel: first-use setup, panel-only factory reset and Arabic recipe display. Customer candidate for testing.",
   "channel": "pilot"
 }
