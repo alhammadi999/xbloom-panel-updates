@@ -1,0 +1,39 @@
+--- a/include/lv_conf.h
++++ b/include/lv_conf.h
+@@ -1,6 +1,7 @@
+ #ifndef LV_CONF_H
+ #define LV_CONF_H
+ 
++#define LV_FONT_FMT_TXT_LARGE 1
+ #define LV_USE_QRCODE 1
+ #define LV_USE_BIDI 1
+ #define LV_BIDI_BASE_DIR_DEF LV_BASE_DIR_LTR
+--- a/src/panel_setup.cpp
++++ b/src/panel_setup.cpp
+@@ -8,7 +8,14 @@
+ namespace {
+ Step current = Step::Welcome;
+ struct ResetBackend {
+-  bool erase_files() { return LittleFS.format(); }
++  bool erase_files() {
++    // Select the same data partition used by storage before formatting.
++    // A damaged filesystem may fail to mount; formatting must still be tried.
++    LittleFS.begin(false, "/fs", 5, "spiffs");
++    const bool ok = LittleFS.format();
++    LittleFS.end();
++    return ok;
++  }
+   bool erase_preferences() {
+     return nvs_flash_erase() == ESP_OK && nvs_flash_init() == ESP_OK;
+   }
+--- a/tests/setup_mocks/LittleFS.h
++++ b/tests/setup_mocks/LittleFS.h
+@@ -1,4 +1,6 @@
+ #pragma once
++#include <cassert>
++#include <cstring>
+ inline bool fail_format=false, local_files_present=true;
+-struct FsMock {bool format(){if(fail_format)return false;local_files_present=false;return true;}};
++struct FsMock {bool selected=false; bool begin(bool format,const char*,int,const char* label){assert(!format); selected=!strcmp(label,"spiffs");return false;} void end(){} bool format(){assert(selected);if(fail_format)return false;local_files_present=false;return true;}};
+ inline FsMock LittleFS;
+
