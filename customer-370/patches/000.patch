@@ -1,0 +1,16 @@
+--- /dev/null
++++ b/include/i18n.h
+@@ -0,0 +1,12 @@
++#pragma once
++#include <lvgl.h>
++namespace i18n {
++void begin();
++bool arabic();
++const char *tr(const char *english);
++bool save_and_restart(bool arabic);
++#ifdef UI_SIM
++void simulate(bool arabic);
++extern bool restart_requested;
++#endif
++}
+
