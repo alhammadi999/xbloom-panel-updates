@@ -1,0 +1,90 @@
+--- a/src/ui_spotify.inc
++++ b/src/ui_spotify.inc
+@@ -26,7 +26,7 @@
+   enable_button(sp_link, !s.busy && net::state() == net::Wifi::Connected);
+   for(auto *o : {sp_title, sp_artist, sp_device, sp_previous, sp_play, sp_next, sp_volume, sp_minus, sp_plus, sp_volume_text, sp_art, sp_status}) show(o, !pairing);
+   for(auto *o : {sp_qr, sp_scan, sp_scan_note}) show(o, pairing);
+-  set_text(sp_status, !s.linked ? "PHONE REMOTE" : s.playing ? "NOW PLAYING" : "PAUSED");
++  set_text(sp_status, !s.linked ? i18n::tr("PHONE REMOTE") : s.playing ? i18n::tr("NOW PLAYING") : i18n::tr("PAUSED"));
+   lv_obj_set_style_text_color(sp_status, hex(s.playing && s.enabled ? 0x1ED760 : MUTED), 0);
+   for (int i=0;i<4;++i) {
+     int height = s.playing && s.enabled && s.controls ? 8 + ((lv_tick_get()/400 + i*3)%5)*5 : 8;
+@@ -37,18 +37,18 @@
+       snprintf(sp_qr_url, sizeof sp_qr_url, "%s", s.login_url);
+       lv_qrcode_update(sp_qr, sp_qr_url, strlen(sp_qr_url));
+     }
+-    set_text(sp_note, "QR expires in 5 minutes. Tap Login again for a new QR.");
++    set_text(sp_note, i18n::tr("QR expires in 5 minutes. Tap Login again for a new QR."));
+   } else {
+     sp_qr_url[0] = 0;
+-    set_text(sp_title, !s.enabled ? "Spotify remote is off" : s.title[0] ? s.title : "Your music, on your phone");
+-    set_text(sp_artist, s.enabled && s.linked ? s.artist : "Sound stays on your phone's connected speaker.");
+-    set_text(sp_device, s.enabled && s.linked ? s.device : "Spotify Premium required");
+-    set_text(sp_note, s.busy ? "Connecting to Spotify..." : s.message);
++    set_text(sp_title, !s.enabled ? i18n::tr("Spotify remote is off") : s.title[0] ? s.title : i18n::tr("Your music, on your phone"));
++    set_text(sp_artist, s.enabled && s.linked ? s.artist : i18n::tr("Sound stays on your phone's connected speaker."));
++    set_text(sp_device, s.enabled && s.linked ? s.device : i18n::tr("Spotify Premium required"));
++    set_text(sp_note, s.busy ? i18n::tr("Connecting to Spotify...") : s.message);
+     if (!sp_dragging) {
+       lv_slider_set_value(sp_volume, s.volume < 0 ? 0 : s.volume, LV_ANIM_OFF);
+       char value[96];
+-      if (s.can_volume && s.controls) snprintf(value, sizeof value, "Volume  %d%%", s.volume);
+-      else snprintf(value, sizeof value, "%s", s.linked ? "Volume: use your phone for this device" : "Volume");
++      if (s.can_volume && s.controls) snprintf(value, sizeof value, i18n::tr("Volume  %d%%"), s.volume);
++      else snprintf(value, sizeof value, "%s", s.linked ? i18n::tr("Volume: use your phone for this device") : i18n::tr("Volume"));
+       set_text(sp_volume_text, value);
+     }
+   }
+@@ -61,9 +61,9 @@
+   sub_header(scr_spotify, "", [](lv_event_t *) { spotify::set_visible(false); back_to_apps(nullptr); });
+   auto *logo = lv_image_create(scr_spotify); lv_image_set_src(logo, &spotify_logo_image); lv_obj_set_pos(logo, 76, 43);
+   auto *trial = box(scr_spotify, 264, 50, 80, 26, 0x17271D, 8);
+-  lv_obj_center(text(trial, "REMOTE", &inter_14, hex(0x8DB79B)));
++  lv_obj_center(text(trial, i18n::tr("REMOTE"), &inter_14, hex(0x8DB79B)));
+   lv_obj_t *power = group(scr_spotify, W - 190, 34, 160, 56);
+-  lv_obj_set_pos(text(power, "Enable", &inter_16, hex(SUB)), 0, 18);
++  lv_obj_set_pos(text(power, i18n::tr("Enable"), &inter_16, hex(SUB)), 0, 18);
+   sp_enabled = toggle(power, spotify::state().enabled, [](lv_event_t *e) {
+     spotify::set_enabled(lv_obj_has_state((lv_obj_t *)lv_event_get_target(e), LV_STATE_CHECKED)); refresh_spotify();
+   });
+@@ -81,12 +81,12 @@
+   sp_art = box(card, 24, 24, 144, 144, 0x20382A, 16);
+   auto *music=text(sp_art, LV_SYMBOL_AUDIO, &lv_font_montserrat_48, hex(0xB2E6C2)); lv_obj_set_pos(music, 49, 24);
+   for(int i=0;i<4;++i) sp_bars[i]=box(sp_art, 48+i*14, 108, 8, 8, 0x1ED760, 4);
+-  sp_status=text(card, "PHONE REMOTE", &inter_14, hex(0x1ED760)); lv_obj_set_pos(sp_status, 200, 14);
++  sp_status=text(card, i18n::tr("PHONE REMOTE"), &inter_14, hex(0x1ED760)); lv_obj_set_pos(sp_status, 200, 14);
+   sp_previous=round_button(card, 200, 132, 72, LV_SYMBOL_PREV, &lv_font_montserrat_28, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Previous); });
+   sp_play=round_button(card, 300, 124, 88, LV_SYMBOL_PLAY, &lv_font_montserrat_48, nullptr, [](lv_event_t *) { spotify::command(spotify::state().playing ? spotify::Command::Pause : spotify::Command::Play); });
+   lv_obj_set_style_bg_color(sp_play, hex(0x1ED760), 0); lv_obj_set_style_text_color(lv_obj_get_child(sp_play,0), hex(0),0);
+   sp_next=round_button(card, 416, 132, 72, LV_SYMBOL_NEXT, &lv_font_montserrat_28, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Next); });
+-  sp_volume_text = text(card, "Volume", &inter_16, hex(SUB)); lv_obj_set_pos(sp_volume_text, 24, 212);
++  sp_volume_text = text(card, i18n::tr("Volume"), &inter_16, hex(SUB)); lv_obj_set_pos(sp_volume_text, 24, 212);
+   sp_minus = pill(card, 24, 238, 64, 56, "-", SURFACE, TEXT, [](lv_event_t *) {
+     spotify::command(spotify::Command::Volume, std::max(0, spotify::state().volume - 5));
+   });
+@@ -103,7 +103,7 @@
+     const auto event = lv_event_get_code(e);
+     if (event == LV_EVENT_PRESSED) sp_dragging = true;
+     if (event == LV_EVENT_VALUE_CHANGED) {
+-      char value[32]; snprintf(value, sizeof value, "Volume  %d%%", (int)lv_slider_get_value(sp_volume)); set_text(sp_volume_text, value);
++      char value[32]; snprintf(value, sizeof value, i18n::tr("Volume  %d%%"), (int)lv_slider_get_value(sp_volume)); set_text(sp_volume_text, value);
+     }
+     if (event == LV_EVENT_RELEASED) {
+       spotify::command(spotify::Command::Volume, lv_slider_get_value(sp_volume)); sp_dragging = false;
+@@ -115,11 +115,11 @@
+   sp_qr = lv_qrcode_create(card); lv_qrcode_set_size(sp_qr, 224);
+   lv_qrcode_set_dark_color(sp_qr, hex(0)); lv_qrcode_set_light_color(sp_qr, hex(0xffffff));
+   lv_obj_set_pos(sp_qr, 24, 16); lv_obj_set_style_border_width(sp_qr, 8, 0); lv_obj_set_style_border_color(sp_qr, hex(0xffffff), 0);
+-  sp_scan = text(card, "Scan with your phone", &inter_26b, hex(TEXT)); lv_obj_set_pos(sp_scan, 280, 46);
+-  sp_scan_note = text(card, "1. Use Wi-Fi or mobile data.\n\n2. Log in to Spotify on your phone.\n\n3. Approve to connect automatically.", &inter_16, hex(SUB));
++  sp_scan = text(card, i18n::tr("Scan with your phone"), &inter_26b, hex(TEXT)); lv_obj_set_pos(sp_scan, 280, 46);
++  sp_scan_note = text(card, i18n::tr("1. Use Wi-Fi or mobile data.\n\n2. Log in to Spotify on your phone.\n\n3. Approve to connect automatically."), &inter_16, hex(SUB));
+   lv_obj_set_pos(sp_scan_note, 280, 102); lv_obj_set_width(sp_scan_note, 420);
+-  sp_link = pill(scr_spotify, M, 412, 280, 56, "Login with Spotify", TEXT, BG, [](lv_event_t *) { spotify::start_pairing(); refresh_spotify(); });
+-  sp_disconnect = pill(scr_spotify, M, 412, 280, 56, "Disconnect account", SURFACE, TEXT, [](lv_event_t *) { spotify::disconnect(); refresh_spotify(); });
++  sp_link = pill(scr_spotify, M, 412, 280, 56, i18n::tr("Login with Spotify"), TEXT, BG, [](lv_event_t *) { spotify::start_pairing(); refresh_spotify(); });
++  sp_disconnect = pill(scr_spotify, M, 412, 280, 56, i18n::tr("Disconnect account"), SURFACE, TEXT, [](lv_event_t *) { spotify::disconnect(); refresh_spotify(); });
+   refresh_spotify();
+ }
+ #endif
+
