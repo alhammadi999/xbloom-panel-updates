@@ -1,0 +1,196 @@
+--- a/src/ui_machine.inc
++++ b/src/ui_machine.inc
+@@ -117,111 +117,111 @@
+     options+=name;
+   }
+   for (auto *input:slot_inputs) { lv_dropdown_set_options(input,options.c_str()); lv_dropdown_set_selected(input,0); }
+-  set_text(slots_status,"Choose all three. Current Studio presets cannot be read here.");
++  set_text(slots_status,i18n::tr("Choose all three. Current Studio presets cannot be read here."));
+   load(machine_slots_page,Anim::PushLeft);
+ }
+ void save_machine_slots(lv_event_t *) {
+-  if (machine_waiting || link != LinkState::Connected || ui::busy()) return show_toast("Connect an idle Studio first.");
+-  for (auto *input:slot_inputs) if (lv_dropdown_get_selected(input)==0) return show_toast("Choose recipes for A, B and C first.");
+-  confirm("Replace Studio A/B/C?","All three presets will be replaced by your selections. This does not start a brew.","Save all three",[] {
++  if (machine_waiting || link != LinkState::Connected || ui::busy()) return show_toast(i18n::tr("Connect an idle Studio first."));
++  for (auto *input:slot_inputs) if (lv_dropdown_get_selected(input)==0) return show_toast(i18n::tr("Choose recipes for A, B and C first."));
++  confirm(i18n::tr("Replace Studio A/B/C?"),i18n::tr("All three presets will be replaced by your selections. This does not start a brew."),i18n::tr("Save all three"),[] {
+     if (machine_waiting || link!=LinkState::Connected || ui::busy()) return;
+     auto *batch=new(std::nothrow) MachineSlots;
+-    if (!batch) return show_toast("Not enough memory. Try again.");
++    if (!batch) return show_toast(i18n::tr("Not enough memory. Try again."));
+     for (int i=0;i<3;++i) {
+       unsigned index=lv_dropdown_get_selected(slot_inputs[i]);
+       auto *p=index && index<=slot_ids.size() ? find(slot_ids[index-1]) : nullptr;
+-      if (!p || p->bypass || xb::validate(p->r)) { delete batch; return show_toast("Recipe changed. Select all three again."); }
++      if (!p || p->bypass || xb::validate(p->r)) { delete batch; return show_toast(i18n::tr("Recipe changed. Select all three again.")); }
+       batch->recipes[i]=p->r;
+     }
+     BleCmd cmd;cmd.type=BleCmdType::MachineSlots;cmd.request_id=++machine_request;cmd.queued_at=millis();cmd.slots=batch;
+     machine_waiting=ble_link::post(cmd);
+     if (!machine_waiting) delete batch;
+     saving_slots=machine_waiting; machine_started=millis(); paint_machine_fields();
+-    machine_note(machine_waiting ? "Saving A/B/C. Keep the Studio connected..." : "Queue busy. Retry.");
++    machine_note(machine_waiting ? i18n::tr("Saving A/B/C. Keep the Studio connected...") : i18n::tr("Queue busy. Retry."));
+   });
+ }
+ void capture_radius_reference(lv_event_t *) {
+-  confirm("Read standard L3 reference?",
+-    "In the official xBloom app, save Pour range L3. Reconnect this panel, keep the Studio home, then tap Read L3. Only continue after saving L3.",
+-    "Read L3",[] {
+-      if (machine_waiting || link!=LinkState::Connected || ui::busy()) return show_toast("Connect an idle Studio first.");
++  confirm(i18n::tr("Read standard L3 reference?"),
++    i18n::tr("In the official xBloom app, save Pour range L3. Reconnect this panel, keep the Studio home, then tap Read L3. Only continue after saving L3."),
++    i18n::tr("Read L3"),[] {
++      if (machine_waiting || link!=LinkState::Connected || ui::busy()) return show_toast(i18n::tr("Connect an idle Studio first."));
+       BleCmd cmd;cmd.type=BleCmdType::MachineReference;cmd.request_id=++machine_request;cmd.queued_at=millis();
+       saving_slots=false;machine_waiting=ble_link::post(cmd);machine_started=millis();paint_machine_fields();
+-      machine_note(machine_waiting ? "Reading the L3 reference you selected..." : "Queue busy. Retry.");
++      machine_note(machine_waiting ? i18n::tr("Reading the L3 reference you selected...") : i18n::tr("Queue busy. Retry."));
+     });
+ }
+ lv_obj_t *machine_guide, *machine_guide_title, *machine_guide_body;
+ void open_machine_guide(int which) {
+-  const char *titles[]={"Grinder calibration","Descaling","Scale calibration"};
++  const char *titles[]={i18n::tr("Grinder calibration"),i18n::tr("Descaling"),i18n::tr("Scale calibration")};
+   const char *guides[]={
+-    "On-machine guide\n\nClear foreign objects and fit the dosing cup.\nOpen Grinder with the left knob. Triple-press that knob.\nWait about 120 seconds for Done.",
+-    "On-machine guide\n\nPlace a 1 L container under the spout. Use coffee-machine descaler as directed; do not use vinegar.\nOpen Brewer with the middle knob, then triple-press it.\nFollow the Studio prompts. Allow the soak and drain to finish, then rinse the tank, fill to MAX and complete rinsing. Do not drink the liquid.",
+-    "On-machine guide\n\nPrepare 100 g and 500 g calibration weights.\nOpen Scale with the right knob; triple-press the middle knob.\nEmpty the scale and confirm with the right knob.\nFollow prompts for 100 g, then 500 g. Wait for Done; repeat if Retry appears."
++    i18n::tr("On-machine guide\n\nClear foreign objects and fit the dosing cup.\nOpen Grinder with the left knob. Triple-press that knob.\nWait about 120 seconds for Done."),
++    i18n::tr("On-machine guide\n\nPlace a 1 L container under the spout. Use coffee-machine descaler as directed; do not use vinegar.\nOpen Brewer with the middle knob, then triple-press it.\nFollow the Studio prompts. Allow the soak and drain to finish, then rinse the tank, fill to MAX and complete rinsing. Do not drink the liquid."),
++    i18n::tr("On-machine guide\n\nPrepare 100 g and 500 g calibration weights.\nOpen Scale with the right knob; triple-press the middle knob.\nEmpty the scale and confirm with the right knob.\nFollow prompts for 100 g, then 500 g. Wait for Done; repeat if Retry appears.")
+   };
+   set_text(machine_guide_title,titles[which]);set_text(machine_guide_body,guides[which]);load(machine_guide,Anim::PushLeft);
+ }
+ void build_machine_settings() {
+   machine_page=page_machine;
+-  lv_obj_set_pos(text(machine_page,"Machine settings",&inter_34b,hex(TEXT)),M,SB+2);
+-  pill(machine_page,W-M-142,SB+4,142,46,"Refresh",SURFACE,TEXT,[](lv_event_t *){request_machine_settings(false);});
+-  machine_name_label=text(machine_page,"Studio not connected",&inter_14,hex(MUTED));lv_obj_set_pos(machine_name_label,M+4,84);
++  lv_obj_set_pos(text(machine_page,i18n::tr("Machine settings"),&inter_34b,hex(TEXT)),M,SB+2);
++  pill(machine_page,W-M-142,SB+4,142,46,i18n::tr("Refresh"),SURFACE,TEXT,[](lv_event_t *){request_machine_settings(false);});
++  machine_name_label=text(machine_page,i18n::tr("Studio not connected"),&inter_14,hex(MUTED));lv_obj_set_pos(machine_name_label,M+4,84);
+   const int width=(W-2*M-G)/2;
+   auto *basic=box(machine_page,M,108,width,4*54,0x1C1C1E,R_SM);
+   const int fields[]={machine::Mode,machine::Weight,machine::Temperature,machine::Water};
+   for (int row_index=0;row_index<4;++row_index) {
+     int i=fields[row_index];
+-    auto *line=row(basic,row_index,54,machine_labels[i],nullptr,nullptr);
++    auto *line=row(basic,row_index,54,i18n::tr(machine_labels[i]),nullptr,nullptr);
+     // Two lines keep long labels clear of the controls in the landscape layout.
+     auto *label=lv_obj_get_child(line,0); if(row_index) label=lv_obj_get_child(line,1);
+     lv_obj_set_style_text_font(label,&inter_16,0);
+-    machine_inputs[i]=dropdown(line,machine_options[i],machine_choice);lv_obj_set_width(machine_inputs[i],158);
++    machine_inputs[i]=dropdown(line,i18n::tr(machine_options[i]),machine_choice);lv_obj_set_width(machine_inputs[i],158);
+   }
+   auto *more=box(machine_page,M+width+G,108,width,4*54,0x1C1C1E,R_SM);
+-  row(more,0,54,"Auto-mode recipes",nullptr,open_machine_slots);
+-  row(more,1,54,"Advanced features",nullptr,[](lv_event_t *){load(machine_advanced,Anim::PushLeft);});
+-  row(more,2,54,"About Studio",nullptr,[](lv_event_t *){
+-    char info[180];snprintf(info,sizeof info,"Serial: %s\nModel: %s\nFirmware: %s",
+-      displayed_settings.serial[0]?displayed_settings.serial:"Not reported",
+-      displayed_settings.model[0]?displayed_settings.model:"Not reported",
+-      displayed_settings.firmware[0]?displayed_settings.firmware:"Not reported");
++  row(more,0,54,i18n::tr("Auto-mode recipes"),nullptr,open_machine_slots);
++  row(more,1,54,i18n::tr("Advanced features"),nullptr,[](lv_event_t *){load(machine_advanced,Anim::PushLeft);});
++  row(more,2,54,i18n::tr("About Studio"),nullptr,[](lv_event_t *){
++    char info[540];snprintf(info,sizeof info,i18n::tr("Serial: %s\nModel: %s\nFirmware: %s"),
++      displayed_settings.serial[0]?displayed_settings.serial:i18n::tr("Not reported"),
++      displayed_settings.model[0]?displayed_settings.model:i18n::tr("Not reported"),
++      displayed_settings.firmware[0]?displayed_settings.firmware:i18n::tr("Not reported"));
+     set_text(machine_about_text,info);load(machine_about,Anim::PushLeft);
+   });
+-  row(more,3,54,"Firmware",&machine_fw,nullptr);
++  row(more,3,54,i18n::tr("Firmware"),&machine_fw,nullptr);
+   lv_obj_set_style_text_font(machine_fw,&inter_16,0);
+   machine_status=text(machine_page,"",&inter_16,hex(MUTED));lv_obj_set_pos(machine_status,M+4,346);lv_obj_set_width(machine_status,W-2*M-8);
+-  machine_advanced=new_screen(BG);sub_header(machine_advanced,"Advanced features",back_to_machine);
++  machine_advanced=new_screen(BG);sub_header(machine_advanced,i18n::tr("Advanced features"),back_to_machine);
+   auto *advanced=box(machine_advanced,M,96,W-2*M,6*50,0x1C1C1E,R_SM);
+-  row(advanced,0,50,"Grinder calibration - guide",nullptr,[](lv_event_t *){open_machine_guide(0);});
+-  row(advanced,1,50,"Pour range",nullptr,[](lv_event_t *){load(machine_tuning[0],Anim::PushLeft);});
+-  row(advanced,2,50,"Vibration strength",nullptr,[](lv_event_t *){load(machine_tuning[1],Anim::PushLeft);});
+-  row(advanced,3,50,"Descaling - guide",nullptr,[](lv_event_t *){open_machine_guide(1);});
+-  row(advanced,4,50,"Scale calibration - guide",nullptr,[](lv_event_t *){open_machine_guide(2);});
+-  row(advanced,5,50,"Machine display",nullptr,[](lv_event_t *){load(machine_tuning[2],Anim::PushLeft);});
++  row(advanced,0,50,i18n::tr("Grinder calibration - guide"),nullptr,[](lv_event_t *){open_machine_guide(0);});
++  row(advanced,1,50,i18n::tr("Pour range"),nullptr,[](lv_event_t *){load(machine_tuning[0],Anim::PushLeft);});
++  row(advanced,2,50,i18n::tr("Vibration strength"),nullptr,[](lv_event_t *){load(machine_tuning[1],Anim::PushLeft);});
++  row(advanced,3,50,i18n::tr("Descaling - guide"),nullptr,[](lv_event_t *){open_machine_guide(1);});
++  row(advanced,4,50,i18n::tr("Scale calibration - guide"),nullptr,[](lv_event_t *){open_machine_guide(2);});
++  row(advanced,5,50,i18n::tr("Machine display"),nullptr,[](lv_event_t *){load(machine_tuning[2],Anim::PushLeft);});
+   const int tune_fields[]={machine::Radius,machine::Vibration,machine::Display};
+-  const char *notes[]={"Wide pouring can spill hot water. Use L3 unless a change is needed.","High vibration can spill coffee. Use the lowest suitable level.","Changes the Studio's own display, separate from this panel."};
++  const char *notes[]={i18n::tr("Wide pouring can spill hot water. Use L3 unless a change is needed."),i18n::tr("High vibration can spill coffee. Use the lowest suitable level."),i18n::tr("Changes the Studio's own display, separate from this panel.")};
+   for (int j=0;j<3;++j) {
+-    int i=tune_fields[j];auto *page=machine_tuning[j]=new_screen(BG);sub_header(page,machine_labels[i],back_to_advanced);
+-    pill(page,W-M-142,SB+4,142,46,"Refresh",SURFACE,TEXT,[](lv_event_t *){request_machine_settings(false);});
+-    auto *line=row(box(page,M,112,W-2*M,64,0x1C1C1E,R_SM),0,64,"Level",nullptr,nullptr);
+-    machine_inputs[i]=dropdown(line,machine_options[i],machine_choice);lv_obj_set_width(machine_inputs[i],250);
++    int i=tune_fields[j];auto *page=machine_tuning[j]=new_screen(BG);sub_header(page,i18n::tr(machine_labels[i]),back_to_advanced);
++    pill(page,W-M-142,SB+4,142,46,i18n::tr("Refresh"),SURFACE,TEXT,[](lv_event_t *){request_machine_settings(false);});
++    auto *line=row(box(page,M,112,W-2*M,64,0x1C1C1E,R_SM),0,64,i18n::tr("Level"),nullptr,nullptr);
++    machine_inputs[i]=dropdown(line,i18n::tr(machine_options[i]),machine_choice);lv_obj_set_width(machine_inputs[i],250);
+     auto *note=text(page,notes[j],&inter_20,hex(SUB));lv_obj_set_pos(note,M+4,200);lv_obj_set_width(note,W-2*M-8);
+     machine_notes[j]=text(page,"",&inter_16,hex(MUTED));lv_obj_set_pos(machine_notes[j],M+4,362);lv_obj_set_width(machine_notes[j],W-2*M-8);
+   }
+-  reference_button=pill(machine_tuning[0],M,280,300,48,"Set L3 reference",SURFACE,TEXT,capture_radius_reference);
+-  machine_about=new_screen(BG);sub_header(machine_about,"About Studio",back_to_machine);
++  reference_button=pill(machine_tuning[0],M,280,300,48,i18n::tr("Set L3 reference"),SURFACE,TEXT,capture_radius_reference);
++  machine_about=new_screen(BG);sub_header(machine_about,i18n::tr("About Studio"),back_to_machine);
+   machine_about_text=text(machine_about,"",&inter_26b,hex(TEXT));lv_obj_set_pos(machine_about_text,M,120);
+   machine_guide=new_screen(BG);sub_header(machine_guide,"",back_to_advanced,&machine_guide_title);
+   machine_guide_body=text(machine_guide,"",&inter_20,hex(TEXT));lv_obj_set_pos(machine_guide_body,M,106);lv_obj_set_width(machine_guide_body,W-2*M);
+-  lv_obj_set_pos(text(machine_guide,"Source: xBloom Cleaning and Maintenance. Operate the Studio knobs.",&inter_14,hex(MUTED)),M,442);
+-  machine_slots_page=new_screen(BG);sub_header(machine_slots_page,"Auto-mode recipes A/B/C",back_to_machine);
++  lv_obj_set_pos(text(machine_guide,i18n::tr("Source: xBloom Cleaning and Maintenance. Operate the Studio knobs."),&inter_14,hex(MUTED)),M,442);
++  machine_slots_page=new_screen(BG);sub_header(machine_slots_page,i18n::tr("Auto-mode recipes A/B/C"),back_to_machine);
+   auto *slots=box(machine_slots_page,M,96,W-2*M,3*62,0x1C1C1E,R_SM);
+-  const char *names[]={"Preset A","Preset B","Preset C"};
++  const char *names[]={i18n::tr("Preset A"),i18n::tr("Preset B"),i18n::tr("Preset C")};
+   for (int i=0;i<3;++i) {
+     auto *line=row(slots,i,62,names[i],nullptr,nullptr);
+-    slot_inputs[i]=dropdown(line,"Choose recipe",[](lv_event_t *){});lv_obj_set_width(slot_inputs[i],490);
++    slot_inputs[i]=dropdown(line,i18n::tr("Choose recipe"),[](lv_event_t *){});lv_obj_set_width(slot_inputs[i],490);
+   }
+   slots_status=text(machine_slots_page,"",&inter_16,hex(MUTED));lv_obj_set_pos(slots_status,M+4,308);lv_obj_set_width(slots_status,W-2*M-8);
+-  slot_save=pill(machine_slots_page,M,386,250,52,"Save A/B/C",TEXT,BG,save_machine_slots);
++  slot_save=pill(machine_slots_page,M,386,250,52,i18n::tr("Save A/B/C"),TEXT,BG,save_machine_slots);
+   paint_machine_fields();
+ }
+ void machine_reply(const UiEvent &e) {
+@@ -231,25 +231,25 @@
+   paint_machine_fields();
+   if (displayed_settings.value[machine::Weight] >= 0)
+     set_unit((displayed_settings.value[machine::Weight] + 2) % 3, false);
+-  machine_note( e.ok ? (saving_slots ? e.msg : "Values read from your Studio.") : e.msg);
+-  if (!e.ok && !strncmp(e.msg, "Partial settings.", 17)) {
++  machine_note( e.ok ? (saving_slots ? e.msg : i18n::tr("Values read from your Studio.")) : e.msg);
++  if (!e.ok && !strncmp(e.msg, i18n::tr("Partial settings."), 17)) {
+     char base[24], radius[48], vibration[48], details[160];
+     auto describe = [](const machine::AdvancedReply &r, char *out, size_t size) {
+-      if (!r.seen) snprintf(out, size, "no reply");
++      if (!r.seen) snprintf(out, size, i18n::tr("no reply"));
+       else if (!machine::advanced_format(r)) snprintf(out, size, "%lu [type %u/%u]", (unsigned long)r.raw, r.type, r.marker);
+       else snprintf(out, size, "%lu", (unsigned long)r.raw);
+     };
+     if (displayed_settings.radius_base_seen) snprintf(base,sizeof base,"%lu",(unsigned long)displayed_settings.radius_base_raw);
+-    else snprintf(base,sizeof base,"not reported");
++    else snprintf(base,sizeof base,i18n::tr("not reported"));
+     describe(displayed_settings.radius_reply, radius, sizeof radius);
+     describe(displayed_settings.vibration_reply, vibration, sizeof vibration);
+-    snprintf(details,sizeof details,"Read details - Radius: %s; base: %s; vibration: %s",radius,base,vibration);
++    snprintf(details,sizeof details,i18n::tr("Read details - Radius: %s; base: %s; vibration: %s"),radius,base,vibration);
+     if (displayed_settings.radius_base < 0 && machine::advanced_format(displayed_settings.radius_reply))
+-      machine_note("Pour range needs its L3 reference. Open Advanced features > Pour range.");
++      machine_note(i18n::tr("Pour range needs its L3 reference. Open Advanced features > Pour range."));
+ #if PANEL_PILOT_ACCESS
+     else machine_note(details);
+ #else
+-    else machine_note("Some settings could not be read. Keep Studio on its home screen and tap Refresh.");
++    else machine_note(i18n::tr("Some settings could not be read. Keep Studio on its home screen and tap Refresh."));
+ #endif
+   }
+ }
+
