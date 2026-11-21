@@ -1,0 +1,325 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -2117,13 +2182,13 @@
+   lv_obj_align(pen, LV_ALIGN_RIGHT_MID, -16, 0);
+   pressable(nm);
+   on_click(nm, [](lv_event_t *) {
+-    open_text_entry("Recipe name", ed.r.name, "Name", false, "Done", scr_edit, [](const char *t) {
++    open_text_entry(i18n::tr("Recipe name"), ed.r.name, i18n::tr("Name"), false, i18n::tr("Done"), scr_edit, [](const char *t) {
+       strlcpy(ed.r.name, t, sizeof ed.r.name);
+       refresh_editor();
+       load(scr_edit, Anim::PopRight);
+     });
+   });
+-  const char *cups[4] = {"xPod", "Omni", "Other", "Tea"};
++  const char *cups[4] = {"xPod", "Omni", i18n::tr("Other"), "Tea"};
+   const int cw = (lw - 3 * 6) / 4;
+   for (int i = 0; i < 4; ++i) {
+     ed_cup_btn[i] = box(scr_edit, lx + i * (cw + 6), top + 60, cw, 44, 0x1C1C1E, 12);
+@@ -2138,20 +2203,20 @@
+     }, (void *)(intptr_t)(i + 1));
+   }
+   const int sh = 72, sy = top + 112;
+-  stepper(scr_edit, lx, sy, lw, sh, "Dose", F_DOSE);
+-  stepper(scr_edit, lx, sy + sh + 8, lw, sh, "Grind size", F_GRIND);
+-  stepper(scr_edit, lx, sy + 2 * (sh + 8), lw, sh, "RPM", F_RPM);
++  stepper(scr_edit, lx, sy, lw, sh, i18n::tr("Dose"), F_DOSE);
++  stepper(scr_edit, lx, sy + sh + 8, lw, sh, i18n::tr("Grind size"), F_GRIND);
++  stepper(scr_edit, lx, sy + 2 * (sh + 8), lw, sh, i18n::tr("RPM"), F_RPM);
+ 
+   // ---- right column: pours
+   const int rx = lx + lw + 24, rw = W - M - rx;
+   ed_chips = group(scr_edit, rx, top, rw, 40);
+   const int hw = (rw - 8) / 2, py = top + 48;
+-  stepper(scr_edit, rx, py, hw, sh, "Volume", F_VOL);
+-  stepper(scr_edit, rx + hw + 8, py, hw, sh, "Temperature", F_TEMP);
+-  stepper(scr_edit, rx, py + sh + 8, hw, sh, "Wait after", F_WAIT);
+-  stepper(scr_edit, rx + hw + 8, py + sh + 8, hw, sh, "Flow rate", F_FLOW);
++  stepper(scr_edit, rx, py, hw, sh, i18n::tr("Volume"), F_VOL);
++  stepper(scr_edit, rx + hw + 8, py, hw, sh, i18n::tr("Temperature"), F_TEMP);
++  stepper(scr_edit, rx, py + sh + 8, hw, sh, i18n::tr("Wait after"), F_WAIT);
++  stepper(scr_edit, rx + hw + 8, py + sh + 8, hw, sh, i18n::tr("Flow rate"), F_FLOW);
+   const uint8_t order[3] = {xb::PAT_CENTERED, xb::PAT_CIRCULAR, xb::PAT_SPIRAL};
+-  const char *pn[3] = {"Centered", "Circular", "Spiral"};
++  const char *pn[3] = {i18n::tr("Centered"), i18n::tr("Circular"), i18n::tr("Spiral")};
+   const int pw = (rw - 2 * 6) / 3, pyy = py + 2 * (sh + 8);
+   for (int i = 0; i < 3; ++i) {
+     ed_pat_btn[i] = box(scr_edit, rx + i * (pw + 6), pyy, pw, 44, 0x1C1C1E, 12);
+@@ -2165,7 +2230,7 @@
+       refresh_editor();
+     }, (void *)(intptr_t)order[i]);
+   }
+-  const char *ag[2] = {"Agitate before", "Agitate after"};
++  const char *ag[2] = {i18n::tr("Agitate before"), i18n::tr("Agitate after")};
+   for (int i = 0; i < 2; ++i) {
+     ed_agit_btn[i] = box(scr_edit, rx + i * (hw + 8), pyy + 52, hw, 40, 0x1C1C1E, 12);
+     lv_obj_center(text(ed_agit_btn[i], ag[i], &inter_14, hex(MUTED)));
+@@ -2179,7 +2244,7 @@
+   }
+   ed_summary = text(scr_edit, "", &inter_16, hex(SUB));
+   lv_obj_set_pos(ed_summary, rx + 4, H - M - 26);
+-  ed_remove_pour = text(scr_edit, "Remove this pour", &inter_16, hex(0xFF6B6B));
++  ed_remove_pour = text(scr_edit, i18n::tr("Remove this pour"), &inter_16, hex(0xFF6B6B));
+   lv_obj_align(ed_remove_pour, LV_ALIGN_TOP_RIGHT, -M - 4, H - M - 26);
+   lv_obj_set_ext_click_area(ed_remove_pour, 12);
+   on_click(ed_remove_pour, [](lv_event_t *) {
+@@ -2208,14 +2273,14 @@
+     }
+   } else {
+     ed = recipes::starters().front();
+-    strlcpy(ed.r.name, "New recipe", sizeof ed.r.name);
++    strlcpy(ed.r.name, i18n::tr("New recipe"), sizeof ed.r.name);
+     ed.kind = KIND_MINE;
+     ed.uid = 0;
+     ed.color = CARDS[next_uid % N_CARDS];
+   }
+   ed_uid = ed.uid;
+   ed_pour = 0;
+-  set_text(ed_title, ed_uid ? "Edit recipe" : "New recipe");
++  set_text(ed_title, ed_uid ? i18n::tr("Edit recipe") : i18n::tr("New recipe"));
+   show(ed_delete, ed_uid != 0);
+   refresh_editor();
+   load(scr_edit, Anim::PushLeft);
+@@ -2230,7 +2295,7 @@
+ 
+ void refresh_account() {
+   const cloud::Acct s = cloud::state();
+-  char buf[128];
++  char buf[384];
+   if (s == cloud::Acct::SignedIn) {
+     set_text(ac_title, cloud::email());
+     int mine = 0, shared = 0;
+@@ -2239,21 +2304,20 @@
+       if (p.kind == KIND_SHARED) ++shared;
+     }
+     struct tm t;
+-    char when[32] = "not yet";
++    char when[96]; strlcpy(when,i18n::tr("not yet"),sizeof when);
+     const time_t ls = cloud::last_sync();
+     if (ls && localtime_r(&ls, &t)) {
+       int h = t.tm_hour % 12;
+-      snprintf(when, sizeof when, "at %d:%02d %s", h ? h : 12, t.tm_min, t.tm_hour < 12 ? "AM" : "PM");
++      snprintf(when, sizeof when, i18n::tr("at %d:%02d %s"), h ? h : 12, t.tm_min, t.tm_hour < 12 ? i18n::tr("AM") : i18n::tr("PM"));
+     }
+-    snprintf(buf, sizeof buf, "%d created  |  %d shared\nLast synced %s%s", mine, shared, when,
+-             cloud::busy() ? "  (syncing...)" : "");
++    snprintf(buf, sizeof buf, i18n::tr("%d created  |  %d shared\nLast synced %s%s"), mine, shared, when,
++             cloud::busy() ? i18n::tr("  (syncing...)") : "");
+     set_text(ac_sub, buf);
+-    set_text(ac_primary_lbl, cloud::busy() ? "Syncing..." : "Sync now");
++    set_text(ac_primary_lbl, cloud::busy() ? i18n::tr("Syncing...") : i18n::tr("Sync now"));
+   } else {
+-    set_text(ac_title, s == cloud::Acct::SigningIn ? "Signing in..." : "Not signed in");
+-    set_text(ac_sub, "Sign in with your xBloom app email and password to bring your recipes to the panel. "
+-                              "Edits sync both ways.");
+-    set_text(ac_primary_lbl, "Sign in");
++    set_text(ac_title, s == cloud::Acct::SigningIn ? i18n::tr("Signing in...") : i18n::tr("Not signed in"));
++    set_text(ac_sub, i18n::tr("Sign in with your xBloom app email and password to bring your recipes to the panel. "));
++    set_text(ac_primary_lbl, i18n::tr("Sign in"));
+   }
+   set_text(ac_msg, cloud::message());
+   show(ac_signout, s == cloud::Acct::SignedIn);
+@@ -2261,7 +2325,7 @@
+ 
+ void build_account() {
+   scr_account = new_screen(BG);
+-  sub_header(scr_account, "xBloom account", back_to_settings);
++  sub_header(scr_account, i18n::tr("xBloom account"), back_to_settings);
+   lv_obj_t *card = box(scr_account, M, 96, W - 2 * M, 224, 0x1C1C1E, R_SM);
+   ac_title = text(card, "", &inter_26b, hex(TEXT));
+   lv_obj_set_pos(ac_title, 24, 22);
+@@ -2274,15 +2338,15 @@
+   lv_label_set_long_mode(ac_msg, LV_LABEL_LONG_WRAP);
+   lv_obj_set_width(ac_msg, W - 2 * M - 48);
+   lv_obj_set_pos(ac_msg, 24, 170);
+-  ac_primary = pill(scr_account, M, 336, 260, 56, "Sign in", 0xFFFFFF, 0x000000, [](lv_event_t *) {
++  ac_primary = pill(scr_account, M, 336, 260, 56, i18n::tr("Sign in"), 0xFFFFFF, 0x000000, [](lv_event_t *) {
+     if (cloud::state() == cloud::Acct::SignedIn) {
+       cloud::sync_now();
+       return;
+     }
+-    if (net::state() != net::Wifi::Connected) return show_toast("Connect to Wi-Fi first (Screen > Wi-Fi)");
+-    open_text_entry("Email", cloud::email(), "you@example.com", false, "Next", scr_account, [](const char *t) {
++    if (net::state() != net::Wifi::Connected) return show_toast(i18n::tr("Connect to Wi-Fi first (Screen > Wi-Fi)"));
++    open_text_entry(i18n::tr("Email"), cloud::email(), "you@example.com", false, i18n::tr("Next"), scr_account, [](const char *t) {
+       strlcpy(ac_email, t, sizeof ac_email);
+-      open_text_entry("Password", "", "xBloom password", true, "Sign in", scr_account, [](const char *pw) {
++      open_text_entry(i18n::tr("Password"), "", i18n::tr("xBloom password"), true, i18n::tr("Sign in"), scr_account, [](const char *pw) {
+         cloud::sign_in(ac_email, pw);
+         refresh_account();
+         load(scr_account, Anim::PopRight);
+@@ -2290,11 +2354,11 @@
+     });
+   });
+   ac_primary_lbl = lv_obj_get_child(ac_primary, 0);
+-  ac_signout = pill(scr_account, M + 260 + G, 336, 200, 56, "Sign out", 0x2C2C2E, 0xFF6B6B, [](lv_event_t *) {
+-    confirm("Sign out?", "Your account's recipes will be removed from the panel. Recipes made on the panel stay.",
+-            "Sign out", [] { cloud::sign_out(); });
++  ac_signout = pill(scr_account, M + 260 + G, 336, 200, 56, i18n::tr("Sign out"), 0x2C2C2E, 0xFF6B6B, [](lv_event_t *) {
++    confirm(i18n::tr("Sign out?"), i18n::tr("Your account's recipes will be removed from the panel. Recipes made on the panel stay."),
++            i18n::tr("Sign out"), [] { cloud::sign_out(); });
+   });
+-  lv_obj_t *note = text(scr_account, "The panel saves your password so it can sign in again by itself.", &inter_16,
++  lv_obj_t *note = text(scr_account, i18n::tr("The panel saves your password so it can sign in again by itself."), &inter_16,
+                         hex(MUTED));
+   lv_obj_set_pos(note, M, 412);
+ }
+@@ -2325,14 +2389,14 @@
+       }
+       break;
+     case cloud::Ev::PushFailed: {
+-      char buf[160];
+-      snprintf(buf, sizeof buf, "Saved on the panel, but not to your account: %s", e.msg);
++      char buf[480];
++      snprintf(buf, sizeof buf, i18n::tr("Saved on the panel, but not to your account: %s"), e.msg);
+       show_toast(buf);
+       break;
+     }
+     case cloud::Ev::RemoveFailed: {
+-      char buf[160];
+-      snprintf(buf, sizeof buf, "Couldn't delete it from your account: %s", e.msg);
++      char buf[480];
++      snprintf(buf, sizeof buf, i18n::tr("Couldn't delete it from your account: %s"), e.msg);
+       show_toast(buf);
+       break;
+     }
+@@ -2356,23 +2420,23 @@
+ // live updates
+ // ============================================================================
+ void render_weight() {
+-  char buf[16];
+-  snprintf(buf, sizeof buf, "%.1fg", weight_g);
++  char buf[48];
++  snprintf(buf, sizeof buf, i18n::tr("%.1fg"), weight_g);
+   set_text(gr_weight, buf);
+   set_text(br_weight, buf);
+   render_scale();
+ }
+ 
+ void set_link(LinkState s, const char *name) {
+-  if (link != s && s != LinkState::Connected) clear_machine_read("Connect the Studio, then tap Refresh.");
++  if (link != s && s != LinkState::Connected) clear_machine_read(i18n::tr("Connect the Studio, then tap Refresh."));
+   link = s;
+   if (name && *name) strncpy(machine_name, name, sizeof machine_name - 1);
+   set_text(home_name, machine_name);
+-  if (machine_name_label) set_text(machine_name_label, s == LinkState::Connected ? machine_name : "Studio not connected");
++  if (machine_name_label) set_text(machine_name_label, s == LinkState::Connected ? machine_name : i18n::tr("Studio not connected"));
+   const bool ok = s == LinkState::Connected;
+   show(home_spin, !ok);
+   show(home_dot, ok);
+-  set_text(home_status, ok ? "Connected" : s == LinkState::Connecting ? "Connecting" : "Searching");
++  set_text(home_status, ok ? i18n::tr("Connected") : s == LinkState::Connecting ? i18n::tr("Connecting") : i18n::tr("Searching"));
+   // one row:  XBLOOM 381 >   ● Connected
+   baseline_next_to(home_chev, home_name, false, 8);
+   lv_obj_update_layout(home_chev);
+@@ -2394,7 +2458,7 @@
+ uint32_t water_seen_ms = 0;   // last time the poured volume went up
+ float last_water = 0;
+ const char *pattern_name(uint8_t p) {
+-  return p == xb::PAT_CENTERED ? "Centered" : p == xb::PAT_CIRCULAR ? "Circular" : "Spiral";
++  return p == xb::PAT_CENTERED ? i18n::tr("Centered") : p == xb::PAT_CIRCULAR ? i18n::tr("Circular") : i18n::tr("Spiral");
+ }
+ void update_brew_scene() {
+   if (!dotfx::brew_showing()) return;
+@@ -2414,13 +2478,13 @@
+   char title[32], sub[48];
+   const int i = pour_idx >= 0 && pour_idx < p->r.n_pours ? pour_idx : -1;
+   if (i < 0) {
+-    strcpy(title, "Starting");
+-    snprintf(sub, sizeof sub, "%d pours  |  %.0f ml", p->r.n_pours, p->r.total_water());
++    strcpy(title, i18n::tr("Starting"));
++    snprintf(sub, sizeof sub, i18n::tr("%d pours  |  %.0f ml"), p->r.n_pours, p->r.total_water());
+   } else {
+     char nm[24];
+     strlcpy(title, library::pour_name(*p, i, nm), sizeof title);
+     const xb::Pour &po = p->r.pours[i];
+-    snprintf(sub, sizeof sub, "%.0f\xC2\xB0" "C  |  %s  |  %d of %d", po.temp_c, pattern_name(po.pattern), i + 1, p->r.n_pours);
++    snprintf(sub, sizeof sub, "%.0f\xC2\xB0" i18n::tr("C  |  %s  |  %d of %d"), po.temp_c, pattern_name(po.pattern), i + 1, p->r.n_pours);
+   }
+   v.pour_title = title;
+   v.pour_sub = sub;
+@@ -2484,7 +2548,7 @@
+     case UiEvType::BrewDone: {
+       const PanelRecipe *p = find(active);
+       const float ml = water_ml > 0 ? water_ml : (p ? p->r.total_water() : 0);
+-      dotfx::finish_play(p ? p->r.name : "Your coffee", weight_g, ml, brew_start_ms ? millis() - brew_start_ms : 0);
++      dotfx::finish_play(p ? p->r.name : i18n::tr("Your coffee"), weight_g, ml, brew_start_ms ? millis() - brew_start_ms : 0);
+       wake_req = true;
+       brew_ended();
+       ring_light::finish_brew();
+@@ -2499,7 +2563,7 @@
+     case UiEvType::CmdResult: {
+       const BleCmdType t = (BleCmdType)e.i;
+       if (!e.ok) {
+-        show_toast(e.msg[0] ? e.msg : "Command failed");
++        show_toast(e.msg[0] ? e.msg : i18n::tr("Command failed"));
+         if (t == BleCmdType::Load) brew_ended();
+         if (t == BleCmdType::Execute) flow = Flow::Loaded;
+         if (t == BleCmdType::GrinderStart) { grinding = false; set_text(gr_play_icon, LV_SYMBOL_PLAY); }
+@@ -2530,6 +2594,7 @@
+ namespace ui {
+ 
+ void begin() {
++  i18n::begin();
+ #ifdef UI_SIM
+   ring_light::begin();
+ #endif
+@@ -2590,14 +2655,14 @@
+   static uint32_t last = 0;
+   if (millis() - last > 200) {
+     last = millis();
+-    char buf[16];
++    char buf[48];
+     fmt_time(buf, sizeof buf, pouring ? millis() - pour_start_ms : 0);
+     set_text(br_timer, buf);
+     fmt_time(buf, sizeof buf, sw_elapsed + (sw_running ? millis() - sw_start : 0));
+     set_text(sc_timer, buf);
+     if (lv_screen_active() == scr_detail && active == cur) refresh_detail();
+     update_brew_scene();
+-    if (machine_waiting && millis() - machine_started > 35000) clear_machine_read("No response. Tap Refresh to read the current values.");
++    if (machine_waiting && millis() - machine_started > 35000) clear_machine_read(i18n::tr("No response. Tap Refresh to read the current values."));
+     check_idle_home();
+     refresh_net();
+     tick_setup();
+@@ -2609,8 +2674,8 @@
+     if (lv_screen_active() == scr_ring_light || lv_screen_active() == scr_ring_behaviour) refresh_ring_light();
+     const cloud::Acct as = cloud::state();
+     set_text(st_acc_val, as == cloud::Acct::SignedIn    ? cloud::email()
+-                                  : as == cloud::Acct::SigningIn ? "Signing in..."
+-                                                                 : "Not signed in");
++                                  : as == cloud::Acct::SigningIn ? i18n::tr("Signing in...")
++                                                                 : i18n::tr("Not signed in"));
+     if (lv_screen_active() == scr_account) refresh_account();
+     // a manual pour stops by itself at its volume; reset the button after it should have finished
+     if (pouring && millis() - pour_start_ms > (uint32_t)((b_volume / b_flow + 8) * 1000)) {
+@@ -2668,8 +2733,11 @@
+ 
+ #ifdef UI_SIM
+ // Desktop preview only: jump straight to a screen.
++const char *sim_input_value(){return te_input.value.c_str();}
++const char *sim_recipe_name(){return lib[0].r.name;}
+ void sim_show(int which, int recipe) {
+   switch (which) {
++    case 41: case 42: open_text_entry(i18n::tr("Recipe name"),which==42?lib[0].r.name:"",i18n::tr("Name"),false,i18n::tr("Done"),scr_home,[](const char *s){strlcpy(lib[0].r.name,s,sizeof lib[0].r.name);});break;
+     case 40:
+       strlcpy(lib[0].r.name,u8"قهوة عربية V60 - 250ml",sizeof lib[0].r.name);
+       strlcpy(lib[1].r.name,u8"إثيوبيا - تحميص فاتح",sizeof lib[1].r.name);
+@@ -2686,7 +2754,7 @@
+     case 8: show(modal, false); break;
+     case 9: lv_screen_load(scr_home); set_tab(2); break;
+     case 10: open_wifi(); break;
+-    case 11: open_password("Home Wi-Fi"); break;
++    case 11: open_password(i18n::tr("Home Wi-Fi")); break;
+     case 12: open_update(); break;
+     case 13: show_clock(true); break;
+     case 14: show_clock(false); break;
+@@ -2694,7 +2762,7 @@
+     case 16: lv_screen_load(scr_home); set_tab(2); open_account(); break;
+     case 17: lv_screen_load(scr_home); set_tab(1); set_seg(1); break;
+     case 18: lv_screen_load(scr_home); set_tab(1); set_seg(0); break;
+-    case 19: confirm("Delete recipe?", "It will also be deleted from your xBloom account.", "Delete", nullptr); break;
++    case 19: confirm(i18n::tr("Delete recipe?"), i18n::tr("It will also be deleted from your xBloom account."), i18n::tr("Delete"), nullptr); break;
+     case 20: show(cf_layer, false); break;
+     case 21: {  // brew start animation over the brewing screen
+       open_recipe(lib[recipe].uid, Anim::None); active = lib[recipe].uid; flow = Flow::Brewing;
+
