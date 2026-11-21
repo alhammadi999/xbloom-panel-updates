@@ -1,0 +1,107 @@
+name: Build customer 3.6.1 candidate
+on:
+  push:
+    branches: [feature/customer-spotify-361]
+    paths: [customer-360/**, .github/workflows/customer-361.yml]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Extract source
+        run: |
+          unzip -q source/welcome-screensaver.zip -d firmware-src
+          python - <<'PY'
+          from pathlib import Path
+          for p in list(Path('firmware-src').rglob('*')) + list(Path('customer-360/patches').glob('*.patch')):
+              if p.is_file() and p.suffix in ('.cpp','.h','.inc','.c','.py','.txt','.ini','.md','.patch'):
+                  p.write_text(p.read_text(encoding='utf-8'),encoding='utf-8')
+          PY
+          cd firmware-src
+          for change in ../customer-360/patches/*.patch; do git apply --unsafe-paths "$change"; done
+      - name: Install build tools and UI dependencies
+        run: |
+          python -m pip install -r firmware-src/requirements-build.txt
+          git clone --depth 1 --branch v9.1.0 https://github.com/lvgl/lvgl.git vendor/lvgl
+          git clone --depth 1 --branch v7.4.2 https://github.com/bblanchon/ArduinoJson.git vendor/ArduinoJson
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate pinned Arabic bitmap fonts
+        run: |
+          npm install --prefix /tmp/font-tools lv_font_conv@1.5.3
+          mkdir -p firmware-src/assets/fonts
+          cp vendor/lvgl/demos/multilang/assets/fonts/NotoNaskhArabic-SemiBold.ttf firmware-src/assets/fonts/
+          curl -fsSL https://raw.githubusercontent.com/notofonts/arabic/main/OFL.txt -o firmware-src/assets/fonts/OFL.txt
+          for size in 14 16 20 26 34 44 64; do
+            node /tmp/font-tools/node_modules/lv_font_conv/lv_font_conv.js --no-compress --bpp 4 --size "$size" --font firmware-src/assets/fonts/NotoNaskhArabic-SemiBold.ttf -r '0x600-0x6FF,0x750-0x77F,0x8A0-0x8FF,0xFB50-0xFDFF,0xFE70-0xFEFF' --format lvgl --lv-include lvgl.h --lv-font-name "arabic_$size" -o "firmware-src/src/fonts/arabic_$size.c"
+          done
+      - name: Build and exercise customer interface
+        working-directory: firmware-src
+        run: |
+          cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.6.1
+          cmake --build sim-build -j 4
+          ./sim-build/sim spotify-test
+          ./sim-build/sim customer-test
+          ./sim-build/sim arabic-test
+          ./sim-build/sim appearance-test
+          ./sim-build/sim machine-test
+          g++ -std=c++17 -DPANEL_SPOTIFY_ENABLED=1 -Iinclude -I"$GITHUB_WORKSPACE/vendor/ArduinoJson/src" tests/test_spotify_engine.cpp src/spotify_engine.cpp -o /tmp/spotify-test
+          /tmp/spotify-test
+          g++ -std=c++17 -Iinclude tests/test_reset_sequence.cpp -o /tmp/reset-test
+          /tmp/reset-test
+          g++ -std=c++17 -Itests/setup_mocks -Iinclude tests/test_panel_setup.cpp src/panel_setup.cpp -o /tmp/setup-test
+          /tmp/setup-test
+          python -m unittest discover -s tests -p test_customer_release.py -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: customer-3.6.1-ui
+          path: firmware-src/*.ppm
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: customer360-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            customer360-${{ runner.os }}-
+            owner-pio55-${{ runner.os }}-
+      - name: Build customer firmware
+        working-directory: firmware-src
+        run: pio run -e crowpanel-advance-43 -j 2
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: customer360-${{ runner.os }}-${{ github.sha }}
+      - name: Verify and package candidate
+        working-directory: firmware-src
+        run: |
+          mkdir -p candidate
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43/firmware.bin --notes "Restore Spotify in customer builds and enlarge playback and volume touch controls."
+          cp .pio/build/crowpanel-advance-43/firmware.factory.bin candidate/customer-3.6.1-full-usb.bin
+          python - <<'PY'
+          from pathlib import Path
+          app=Path('candidate/xbloom-saud-3.6.1.bin').read_bytes()
+          full=Path('candidate/customer-3.6.1-full-usb.bin').read_bytes()
+          assert b'XBLOOM-CHANNEL|customer|' in app and b'XBLOOM-CHANNEL|owner|' not in app
+          assert full[0x10000:]==app
+          assert all(x==255 for x in full[0x9000:0xe000]), 'Personal data in NVS'
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-3.6.1-candidate
+          path: firmware-src/candidate
+          if-no-files-found: error
+
+
+
