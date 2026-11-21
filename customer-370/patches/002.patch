@@ -1,0 +1,10 @@
+--- a/include/ui.h
++++ b/include/ui.h
+@@ -12,5 +12,5 @@
+ }  // namespace ui
+ 
+ #ifdef UI_SIM
+-namespace ui { void sim_show(int which, int recipe); }
++namespace ui { const char *sim_input_value(); const char *sim_recipe_name(); void sim_show(int which, int recipe); }
+ #endif
+
