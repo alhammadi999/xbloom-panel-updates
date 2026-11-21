@@ -1,0 +1,62 @@
+name: Publish verified 3.6.1 to Pilot
+on:
+  push:
+    branches: [feature/customer-spotify-361]
+    paths: [.github/workflows/publish-customer-361-pilot.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: customer-3.6.1-candidate
+          run-id: 44900744317
+          github-token: ${{ github.token }}
+          path: /tmp/customer-361
+      - name: Verify exact approved image and prepare Pilot only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,subprocess,sys
+          sys.path.insert(0,'scripts')
+          from verify_release import verify
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == '932b217af4bf8ca91127a09bf9d25ab6369a861b', 'Main changed; review before publishing'
+          assert json.loads(Path('pilot.json').read_text())['version']=='3.6.0'
+          stable=Path('stable.json').read_bytes()
+          source=Path('/tmp/customer-361')
+          name='xbloom-saud-3.6.1.bin'
+          image=(source/name).read_bytes()
+          digest=hashlib.sha256(image).hexdigest()
+          assert digest=='170dd02158e6f3c80b13c2ebfbb9f47c8ae983e9be70312574a6acda2e04aade'
+          assert len(image)==5842544
+          assert b'XBLOOM-CHANNEL|customer|' in image and b'XBLOOM-CHANNEL|owner|' not in image
+          assert b'3Dup xBloom Panel' in image
+          verify(source,'pilot')
+          assert not Path(name).exists(), 'Version already exists'
+          Path(name).write_bytes(image)
+          feed=json.loads((source/'pilot.json').read_text())
+          feed['channel']='pilot'
+          feed['notes']='3Dup xBloom Panel: restored Spotify, larger playback and volume controls, first-use setup and panel-only factory reset.'
+          assert len(feed['notes'].encode())<=155
+          Path('pilot.json').write_text(json.dumps(feed,indent=2)+'\n')
+          print(verify(Path('.'),'pilot'))
+          print(verify(Path('.'),'stable'))
+          assert Path('stable.json').read_bytes()==stable
+          assert subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()==['pilot.json']
+          PY
+          python -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Publish verified Pilot manifest and application together
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- pilot.json xbloom-saud-3.6.1.bin
+          git commit -m 'Publish 3Dup xBloom Panel 3.6.1 customer Spotify update to Pilot'
+          git push origin HEAD:main
+
