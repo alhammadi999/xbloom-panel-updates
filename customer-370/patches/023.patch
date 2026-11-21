@@ -1,0 +1,37 @@
+--- a/src/translations.inc
++++ b/src/translations.inc
+@@ -17,8 +17,8 @@
+   {"+  New","+ جديد"},
+   {"1 min\n3 min\n5 min\n10 min\nNever","دقيقة\n3 دقائق\n5 دقائق\n10 دقائق\nأبداً"},
+   {"1. Use Wi-Fi or mobile data.\n\n2. Log in to Spotify on your phone.\n\n3. Approve to connect automatically.","1. اتصل بالواي فاي أو بيانات الهاتف.\n\n2. سجّل دخول Spotify على هاتفك.\n\n3. وافق لإتمام الاتصال تلقائياً."},
+-  {"1:%g  |  %.0f ml","‎1:%g‎  |  %.0f مل"},
+-  {"1:%g-%.0fml   |   %gg   |   %d Pours","نسبة ‎1:%g‎ | %.0f مل | %g غ | %d صبّات"},
++  {"1:%g  |  %.0f ml","‎1:%g؜  |  %.0f مل"},
++  {"1:%g-%.0fml   |   %gg   |   %d Pours","نسبة ‎1:%g؜ | %.0f مل | %g غ | %d صبّات"},
+   {"< Back","رجوع"},
+   {"A little pause. A better cup.","لحظة هدوء، وفنجان ألذ."},
+   {"AM","ص"},
+--- a/sim/localization_test.inc
++++ b/sim/localization_test.inc
+@@ -1,6 +1,7 @@
+ #include "i18n.h"
+ #include "text_input.h"
+ #include <src/misc/lv_text_ap.h>
++#include <src/misc/lv_bidi.h>
+ static std::string shaped(const char *s) {
+   std::string out(_lv_text_ap_calc_bytes_count(s),'\0');_lv_text_ap_proc(s,&out[0]);return out;
+ }
+@@ -23,6 +24,12 @@
+ }
+ static void test_localization() {
+   assert(i18n::arabic());run(screen_prefs::welcome_ms);
++  char logical[256],visual[512];
++  snprintf(logical,sizeof logical,i18n::tr("1:%g-%.0fml   |   %gg   |   %d Pours"),10.0,220.0,22.0,3);
++  _lv_bidi_process(logical,visual,LV_BASE_DIR_RTL);
++  const char *ratio=strstr(visual,"1:10"),*water=strstr(visual,"220");
++  assert(ratio && water && ratio>water); // Correct RTL column order, with the ratio itself LTR.
++
+   ui::sim_show(9,0);run(100);assert(arabic_label("Screen settings"));save("ar-settings.ppm");
+   auto *lang=find_text(lv_screen_active(),"English");assert(lang);
+   ble_link::allow_restart=false;lv_obj_send_event(lv_obj_get_parent(lang),LV_EVENT_CLICKED,nullptr);run(100);assert(!i18n::restart_requested);
+
