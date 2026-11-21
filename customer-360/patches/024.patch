@@ -1,0 +1,14 @@
+--- /dev/null
++++ b/sim/setup_stub.cpp
+@@ -0,0 +1,10 @@
++#include "panel_setup.h"
++namespace panel_setup {
++static Step current = Step::Done;
++bool boot() { return true; }
++Step step() { return current; }
++bool active() { return current != Step::Done; }
++bool save(Step next) { current = next; return true; }
++bool reset_requested = false;
++bool request_reset() { reset_requested = true; current = Step::Welcome; return true; }
++}
+

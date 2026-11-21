@@ -1,0 +1,26 @@
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -21,6 +21,7 @@
+ #include "update_policy.h"
+ #include "pins_config.h"
+ #include "ui.h"
++#include "panel_setup.h"
+ #include "ring_light.h"
+ 
+ static LGFX gfx;  // used for the GT911 touch controller only
+@@ -223,6 +224,14 @@
+   Serial.printf("\nxBloom Panel %s starting\n", FW_VERSION);
+   Serial.println(PANEL_OTA_MARKER FW_VERSION "|");
+   Serial.println(PANEL_CHANNEL_MARKER);
++  if (!panel_setup::boot()) {
++    bring_up_power_and_touch();
++    bring_up_display();
++    auto *error = lv_label_create(lv_screen_active());
++    lv_label_set_text(error, "Panel reset/storage needs attention.\nSwitch power off and on to retry.\nAccount and machine services have not started.");
++    lv_obj_center(error);
++    for (;;) { lv_timer_handler(); delay(10); }
++  }
+   ring_light::begin();
+   bring_up_power_and_touch();
+   bring_up_display();
+

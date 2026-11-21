@@ -1,0 +1,134 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -6,6 +6,10 @@
+ // 16 px gaps, 20 px card corners — and numbers aligned on their baselines.
+ #include "ui.h"
+ #include "appearance.h"
++#include "panel_setup.h"
++#include "brand_logo.h"
++#include "arabic_text.h"
++#include <src/misc/lv_text_ap.h>
+ #include "wallpaper.h"
+ #include "update_policy.h"
+ #include "ring_light.h"
+@@ -93,6 +97,13 @@
+ void set_text(lv_obj_t *l, const char *t) {
+   const char *cur = lv_label_get_text(l);
+   if (cur && t && strcmp(cur, t) == 0) return;
++  if (cur && arabic_text::contains(t)) {
++    std::string shaped(_lv_text_ap_calc_bytes_count(t), '\0');
++    _lv_text_ap_proc(t, &shaped[0]);
++    if (!strcmp(cur, shaped.c_str())) return;
++  }
++  arabic_text::apply(l, t);
++  lv_obj_set_style_base_dir(l, LV_BASE_DIR_AUTO, 0);
+   lv_label_set_text(l, t);
+ }
+ void set_text_color(lv_obj_t *o, lv_color_t c, lv_style_selector_t sel) {
+@@ -150,7 +161,7 @@
+ lv_obj_t *text(lv_obj_t *parent, const char *t, const lv_font_t *f, lv_color_t c) {
+   lv_obj_t *l = lv_label_create(parent);
+   set_text(l, t);
+-  lv_obj_set_style_text_font(l, f, 0);
++  lv_obj_set_style_text_font(l, arabic_text::font(f,t), 0);
+   set_text_color(l, c, 0);
+   return l;
+ }
+@@ -775,7 +786,14 @@
+ 
+ void open_wifi(lv_event_t * = nullptr);
+ void open_update(lv_event_t * = nullptr);
+-void back_to_settings(lv_event_t *) { set_tab(2); load(scr_home, Anim::PopRight); }
++bool setup_visible();
++void open_setup(bool launch);
++void replay_setup_guide(lv_event_t *);
++void open_factory_reset(lv_event_t *);
++void back_to_settings(lv_event_t *) {
++  if (setup_visible()) { open_setup(false); return; }
++  set_tab(2); load(scr_home, Anim::PopRight);
++}
+ void back_to_apps(lv_event_t *) { set_tab(3); load(scr_home, Anim::PopRight); }
+ 
+ #include "ui_ring_light.inc"
+@@ -818,7 +836,8 @@
+   });
+   refresh_screen_prefs();
+ 
+-  lv_obj_set_pos(text(page, "Panel preferences, connectivity and updates.", &inter_16, hex(MUTED)), M+4, 352);
++  pill(page, M, 356, 220, 48, "Quick guide", SURFACE, TEXT, replay_setup_guide);
++  pill(page, x2, 356, cw, 48, "Factory reset", SURFACE, 0xFF6B6B, open_factory_reset);
+ 
+ }
+ 
+@@ -1887,7 +1906,7 @@
+   lv_obj_set_style_bg_color(cf_layer, hex(0x000000), 0);
+   lv_obj_set_style_bg_opa(cf_layer, LV_OPA_70, 0);
+   lv_obj_add_flag(cf_layer, LV_OBJ_FLAG_CLICKABLE);
+-  const int dw = 456, dh = 228, pad = 28, bw = (dw - 2 * pad - G) / 2, bh = 56;
++  const int dw = 640, dh = 320, pad = 28, bw = (dw - 2 * pad - G) / 2, bh = 56;
+   lv_obj_t *dlg = box(cf_layer, 0, 0, dw, dh, 0x1C1C1E, 24);
+   lv_obj_center(dlg);
+   cf_title = text(dlg, "", &inter_26b, hex(TEXT));
+@@ -2280,6 +2299,8 @@
+   refresh_account();
+   load(scr_account, Anim::PushLeft);
+ }
++
++#include "ui_setup.inc"
+ 
+ void handle_cloud(const cloud::Event &e) {
+   switch (e.type) {
+@@ -2520,6 +2541,7 @@
+   build_editor();
+   build_account();
+   build_update();
++  build_setup();
+   build_ring_light();
+ #if PANEL_SPOTIFY_TRIAL
+   build_spotify();
+@@ -2548,6 +2570,7 @@
+   lv_screen_load(scr_home);
+   set_link(LinkState::Scanning, nullptr);
+   appearance::begin();
++  if (panel_setup::active()) open_setup(true);
+ }
+ 
+ void check_idle_home();
+@@ -2573,6 +2596,7 @@
+     if (machine_waiting && millis() - machine_started > 35000) clear_machine_read("No response. Tap Refresh to read the current values.");
+     check_idle_home();
+     refresh_net();
++    tick_setup();
+ #if PANEL_SPOTIFY_TRIAL
+     const bool music_visible = lv_screen_active() == scr_spotify;
+     spotify::set_visible(music_visible);
+@@ -2611,7 +2635,7 @@
+ #if PANEL_SPOTIFY_TRIAL
+   if (lv_screen_active() == scr_spotify && spotify::state().login_url[0]) return;
+ #endif
+-  if (busy() || dotfx::playing()) return;
++  if (setup_visible() || busy() || dotfx::playing()) return;
+   if (lv_display_get_inactive_time(nullptr) < HOME_AFTER_MS) return;
+   const bool at_home = lv_screen_active() == scr_home && !lv_obj_has_flag(page_home, LV_OBJ_FLAG_HIDDEN);
+   if (at_home && !dotfx::finish_showing()) return;
+@@ -2619,7 +2643,7 @@
+ }
+ 
+ bool busy() {
+-  return machine_waiting || appearance::welcome_visible() || appearance::photo_page_visible() || flow != Flow::Idle || grinding || pouring || sw_running || net::update_state() == net::Upd::Receiving;
++  return setup_visible() || machine_waiting || appearance::welcome_visible() || appearance::photo_page_visible() || flow != Flow::Idle || grinding || pouring || sw_running || net::update_state() == net::Upd::Receiving;
+ }
+ 
+ void show_clock(bool on) {
+@@ -2642,6 +2666,10 @@
+ // Desktop preview only: jump straight to a screen.
+ void sim_show(int which, int recipe) {
+   switch (which) {
++    case 40:
++      strlcpy(lib[0].r.name,u8"قهوة عربية V60 - 250ml",sizeof lib[0].r.name);
++      strlcpy(lib[1].r.name,u8"إثيوبيا - تحميص فاتح",sizeof lib[1].r.name);
++      build_recipe_list();lv_screen_load(scr_home);set_tab(1);set_seg(0);break;
+     case 0: lv_screen_load(scr_home); set_tab(0); break;
+     case 1: lv_screen_load(scr_home); set_tab(1); break;
+     case 2: open_recipe(lib[recipe].uid, Anim::None); break;
+

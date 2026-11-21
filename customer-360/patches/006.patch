@@ -1,0 +1,133 @@
+--- /dev/null
++++ b/src/ui_setup.inc
+@@ -0,0 +1,129 @@
++// Included after account and settings helpers; runs only on the UI task.
++using SetupStep = panel_setup::Step;
++lv_obj_t *scr_setup, *setup_title, *setup_body, *setup_progress, *setup_next, *setup_next_label, *setup_back;
++lv_obj_t *setup_tabs[5], *setup_logo;
++bool setup_tour_replay = false;
++SetupStep setup_view = SetupStep::Welcome;
++bool setup_visible() { return panel_setup::active() || setup_tour_replay; }
++void open_setup(bool launch = false);
++void move_setup(SetupStep next, bool launch = false) {
++  if (!setup_tour_replay && !panel_setup::save(next)) {
++    show_toast("Could not save setup. Please try again."); return;
++  }
++  setup_view = next;
++  open_setup(launch);
++}
++void finish_setup() {
++  if (!setup_tour_replay && !panel_setup::save(SetupStep::Done)) {
++    show_toast("Could not save setup. Please try again."); return;
++  }
++  setup_tour_replay = false;
++  set_tab(0); load(scr_home, Anim::None);
++}
++void setup_action(lv_event_t *) {
++  switch (setup_view) {
++    case SetupStep::Welcome: move_setup(SetupStep::Wifi, true); break;
++    case SetupStep::Wifi: open_wifi(); break;
++    case SetupStep::Account: open_account(); break;
++    case SetupStep::Machine:
++      if (link != LinkState::Connected) { show_toast("Turn on your Studio and keep it nearby."); return; }
++      if (!ble_link::remember_current()) { show_toast("Please wait for the machine connection."); return; }
++      // The BLE task saves the peer; wait for acknowledgement before proceeding.
++      break;
++    case SetupStep::Ready: finish_setup(); break;
++    default: move_setup(SetupStep(uint8_t(setup_view) + 1)); break;
++  }
++}
++void build_setup() {
++  scr_setup = new_screen(BG);
++  setup_progress = text(scr_setup, "", &inter_16, hex(MUTED));
++  lv_obj_set_pos(setup_progress, 28, 48);
++  setup_logo = lv_image_create(scr_setup);
++  lv_image_set_src(setup_logo, &brand::saver_logo());
++  lv_obj_set_pos(setup_logo, 600, 68);
++  lv_image_set_scale(setup_logo, 100);
++  setup_title = text(scr_setup, "", &inter_34b, hex(TEXT));
++  lv_obj_set_pos(setup_title, 32, 92); lv_obj_set_width(setup_title, 560);
++  setup_body = text(scr_setup, "", &inter_20, hex(SUB));
++  lv_obj_set_pos(setup_body, 32, 158); lv_obj_set_width(setup_body, 710);
++  lv_obj_set_style_text_line_space(setup_body, 8, 0);
++  setup_back = pill(scr_setup, 32, 388, 150, 52, "Back", SURFACE, TEXT, [](lv_event_t *) {
++    if (setup_tour_replay && setup_view == SetupStep::HomeTour) { finish_setup(); return; }
++    if (setup_view != SetupStep::Welcome) move_setup(SetupStep(uint8_t(setup_view)-1));
++  });
++  setup_next = pill(scr_setup, 516, 388, 252, 52, "Let's begin", TEXT, BG, setup_action);
++  setup_next_label = lv_obj_get_child(setup_next, 0);
++  const char *names[] = {"xBloom", "Recipes", "Apps", "Machine", "Screen"};
++  for (int i=0; i<5; ++i) {
++    auto *tile = box(scr_setup, 32+i*148, 312, 140, 48, SURFACE, 10);
++    setup_tabs[i] = tile;
++    lv_obj_center(text(tile, names[i], &inter_16, hex(TEXT)));
++  }
++}
++void open_setup(bool launch) {
++  if (!setup_tour_replay) setup_view = panel_setup::step();
++  const int s = int(setup_view);
++  const char *titles[] = {"Welcome to 3Dup", "Connect to Wi-Fi", "Your xBloom account", "Connect your Studio",
++    "xBloom: your daily controls", "Recipes: your coffee library", "Apps: more for your panel",
++    "Machine: Studio settings", "Screen: make it yours", "You're ready"};
++  const char *bodies[] = {
++    "Let's set up your panel together.\nConnect Wi-Fi, sign in and find your Studio.\nYour progress is saved if you switch off.",
++    "Choose your 2.4 GHz Wi-Fi network and enter its password.\nAfter connecting, we'll open the xBloom sign-in page.",
++    "Use the same account as the xBloom app on your phone.\nYour created and shared recipes will appear here.\nKeep your Studio switched on nearby.",
++    "Switch on your Studio and return it to its home screen.\nClose the xBloom phone app if it is using Bluetooth.\nCheck the machine name below before continuing.",
++    "Use the grinder, pour water or open the scale.\nYour favourite recipes are also on this tab.",
++    "Find your created, shared and starter recipes.\nOpen a recipe to review it before brewing.\nChanges to account recipes sync with your xBloom account.",
++    "Open Lighting to control your ring light and brew effects.",
++    "Change the Studio's units, water source and advanced settings.\nThese settings belong to the coffee machine.",
++    "Manage Wi-Fi, your account, appearance and software updates.\nReplay this guide or reset only this panel from here.",
++    "Your panel is set up.\nOpen Screen > Quick guide whenever you need a reminder.\nEnjoy your coffee."};
++  if (s > int(SetupStep::Ready)) { finish_setup(); return; }
++  set_text(setup_title, titles[s]); set_text(setup_body, bodies[s]);
++  const int phase = s < 4 ? s+1 : s < 9 ? 5 : 6;
++  char progress[64]; snprintf(progress, sizeof progress, "SETUP %d / 6%s", phase, s>=4 && s<=8 ? "  -  QUICK GUIDE" : "");
++  set_text(setup_progress, setup_tour_replay ? "QUICK GUIDE" : progress);
++  const char *action = s==0 ? "Let's begin" : s==1 ? "Choose Wi-Fi" : s==2 ? "Open sign-in" : s==3 ? "This is my Studio" : s==9 ? "Start using 3Dup" : "Next";
++  set_text(setup_next_label, action);
++  show(setup_back, s>0); show(setup_logo, s==0);
++  for (int i=0; i<5; ++i) {
++    show(setup_tabs[i], s>=4 && s<=8);
++    lv_obj_set_style_bg_color(setup_tabs[i], hex(s-4==i ? 0x665442 : SURFACE), 0);
++  }
++  lv_obj_remove_state(setup_next, LV_STATE_DISABLED);
++  load(scr_setup, Anim::None);
++  if (launch && setup_view == SetupStep::Wifi) open_wifi();
++  if (launch && setup_view == SetupStep::Account) open_account();
++}
++void replay_setup_guide(lv_event_t *) {
++  setup_tour_replay = true; setup_view = SetupStep::HomeTour; open_setup();
++}
++bool reset_allowed() {
++  return !setup_visible() && flow == Flow::Idle && !grinding && !pouring && !sw_running && !machine_waiting
++    && !cloud::busy() && cloud::state()!=cloud::Acct::SigningIn
++    && net::update_state()!=net::Upd::Receiving && net::update_state()!=net::Upd::Done
++    && ble_link::panel_can_restart();
++}
++void open_factory_reset(lv_event_t *) {
++  if (!reset_allowed()) { show_toast("Finish brewing, syncing or updating first. Keep Studio on its home screen."); return; }
++  confirm("Reset this panel?", "Erase Wi-Fi, sign-in, local recipes, photos and panel settings.\nYour xBloom account, phone app and Studio are not changed.\nThe installed software stays. This cannot be undone.", "Erase panel", [] {
++    if (!reset_allowed()) { show_toast("Panel is busy. Please try again when it is idle."); return; }
++    if (!panel_setup::request_reset()) show_toast("Reset could not start. Nothing was erased.");
++  });
++}
++void tick_setup() {
++  if (!panel_setup::active() || setup_tour_replay || appearance::welcome_visible()) return;
++  const auto s = panel_setup::step();
++  const auto screen = lv_screen_active();
++  if (s == SetupStep::Wifi && net::state()==net::Wifi::Connected && (screen==scr_wifi || screen==scr_setup))
++    move_setup(SetupStep::Account, true);
++  else if (s==SetupStep::Account && cloud::state()==cloud::Acct::SignedIn && (screen==scr_account || screen==scr_setup))
++    move_setup(SetupStep::Machine);
++  else if (s==SetupStep::Machine && screen==scr_setup) {
++    char body[320];
++    snprintf(body,sizeof body,"Switch on your Studio and keep it on its home screen.\nClose the phone app if Bluetooth is busy.\n%s: %s", link==LinkState::Connected ? "Connected" : "Searching", link==LinkState::Connected ? machine_name : "keep only your Studio nearby");
++    set_text(setup_body,body);
++    if (link==LinkState::Connected) lv_obj_remove_state(setup_next,LV_STATE_DISABLED);
++    else lv_obj_add_state(setup_next,LV_STATE_DISABLED);
++    if (ble_link::take_remembered()) move_setup(SetupStep::HomeTour);
++  }
++}
+

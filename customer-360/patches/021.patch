@@ -1,0 +1,12 @@
+--- a/sim/CMakeLists.txt
++++ b/sim/CMakeLists.txt
+@@ -7,7 +7,7 @@
+ add_subdirectory(${LVGL_DIR} lvgl)
+ target_include_directories(lvgl PUBLIC ${CMAKE_SOURCE_DIR}/../include)
+ file(GLOB FONTS ../src/fonts/*.c)
+-add_executable(sim sim_main.cpp ../src/ui.cpp ../src/appearance.cpp ../src/brand_logo.cpp ../src/ring_light.cpp ../src/dotfx.cpp ../src/xbloom_protocol.cpp ${FONTS} ../src/lv_mem_psram.c net_stub.cpp cloud_stub.cpp storage_stub.cpp wallpaper_stub.cpp spotify_stub.cpp ../src/library.cpp)
++add_executable(sim sim_main.cpp setup_stub.cpp ../src/ui.cpp ../src/appearance.cpp ../src/brand_logo.cpp ../src/ring_light.cpp ../src/dotfx.cpp ../src/xbloom_protocol.cpp ${FONTS} ../src/lv_mem_psram.c net_stub.cpp cloud_stub.cpp storage_stub.cpp wallpaper_stub.cpp spotify_stub.cpp ../src/library.cpp)
+ set(FW_VERSION "3.5.0" CACHE STRING "Firmware label used by the desktop preview")
+ option(PANEL_PILOT_ACCESS "Show the owner-only channel picker" OFF)
+ option(PANEL_SPOTIFY_TRIAL "Enable the owner Spotify trial" OFF)
+

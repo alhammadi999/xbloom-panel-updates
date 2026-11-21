@@ -1,0 +1,51 @@
+--- /dev/null
++++ b/include/arabic_text.h
+@@ -0,0 +1,47 @@
++#pragma once
++#include "ui_theme.h"
++#include <algorithm>
++LV_FONT_DECLARE(arabic_14);
++LV_FONT_DECLARE(arabic_16);
++LV_FONT_DECLARE(arabic_20);
++LV_FONT_DECLARE(arabic_26);
++LV_FONT_DECLARE(arabic_34);
++LV_FONT_DECLARE(arabic_44);
++LV_FONT_DECLARE(arabic_64);
++namespace arabic_text {
++inline bool contains(const char *s) {
++  if (!s) return false;
++  // Basic Arabic, Persian and Arabic presentation forms in UTF-8.
++  const auto *p = reinterpret_cast<const unsigned char *>(s);
++  while (*p) {
++    if ((*p>=0xD8 && *p<=0xDB) || (*p==0xEF && (p[1]>=0xAD && p[1]<=0xBB))) return true;
++    ++p;
++  }
++  return false;
++}
++inline const lv_font_t *font(const lv_font_t *source, const char *value) {
++  struct Font { const lv_font_t *latin, *arabic; lv_font_t combined; bool ready; };
++  static Font fonts[] = {
++    {&inter_14,&arabic_14},{&inter_16,&arabic_16},{&inter_20,&arabic_20},{&inter_20b,&arabic_20},
++    {&inter_26b,&arabic_26},{&inter_34b,&arabic_34},{&inter_44,&arabic_44},{&inter_64b,&arabic_64}};
++  for (auto &f:fonts) if (source==f.latin || source==&f.combined) {
++    if (!contains(value)) return f.latin;
++    if (!f.ready) {
++      f.combined=*f.latin;
++      const int ascent=std::max(int(f.latin->line_height-f.latin->base_line),int(f.arabic->line_height-f.arabic->base_line));
++      f.combined.base_line=std::max(f.latin->base_line,f.arabic->base_line);
++      f.combined.line_height=ascent+f.combined.base_line;
++      f.ready=true;
++    }
++    return &f.combined;
++  }
++  return source;
++}
++inline void apply(lv_obj_t *label, const char *value) {
++  lv_obj_set_style_text_font(label,font(lv_obj_get_style_text_font(label,0),value),0);
++  lv_obj_set_style_base_dir(label,LV_BASE_DIR_AUTO,0);
++}
++inline void set(lv_obj_t *label, const char *value) {
++  apply(label,value); lv_label_set_text(label,value);
++}
++}
+

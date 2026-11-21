@@ -1,0 +1,51 @@
+--- /dev/null
++++ b/sim/customer_test.inc
+@@ -0,0 +1,47 @@
++namespace net { void sim_state(Wifi); }
++namespace cloud { void sim_state(Acct); }
++namespace panel_setup { extern bool reset_requested; }
++static lv_obj_t *find_text(lv_obj_t *obj, const char *label) {
++  if (lv_obj_check_type(obj,&lv_label_class) && !strcmp(lv_label_get_text(obj),label)) return obj;
++  for (uint32_t i=0;i<lv_obj_get_child_count(obj);++i)
++    if (auto *hit=find_text(lv_obj_get_child(obj,i),label)) return hit;
++  return nullptr;
++}
++static void click_text(const char *label, bool overlay=false) {
++  auto *hit=find_text(overlay?lv_layer_top():lv_screen_active(),label); assert(hit);
++  lv_obj_send_event(lv_obj_get_parent(hit),LV_EVENT_CLICKED,nullptr); run(400);
++}
++static void test_customer() {
++  using S=panel_setup::Step;
++  assert(panel_setup::step()==S::Welcome);
++  assert(!appearance::welcome_visible());
++  run(35000); // first-run must never time out to Home
++  assert(find_text(lv_screen_active(),"Welcome to 3Dup"));
++  save("customer-01-welcome.ppm");
++  click_text("Let's begin"); assert(panel_setup::step()==S::Wifi);
++  net::sim_state(net::Wifi::WrongPassword);run(400);
++  assert(panel_setup::step()==S::Wifi);save("customer-02-wifi-error.ppm");
++  net::sim_state(net::Wifi::Connected);run(400);
++  assert(panel_setup::step()==S::Account);save("customer-03-account.ppm");
++  cloud::sim_state(cloud::Acct::BadLogin);run(400);assert(panel_setup::step()==S::Account);
++  cloud::sim_state(cloud::Acct::SignedIn);run(400);assert(panel_setup::step()==S::Machine);
++  // Confirming a machine is required, not just detecting any Bluetooth device.
++  run(1000);assert(panel_setup::step()==S::Machine);
++  ev(UiEvType::Link,int(LinkState::Connected),0,"XBLOOM TEST");run(400);
++  save("customer-04-machine.ppm");
++  click_text("This is my Studio");assert(panel_setup::step()==S::HomeTour);
++  save("customer-05-guide.ppm");
++  click_text("Next");assert(panel_setup::step()==S::RecipesTour);
++  click_text("Back");assert(panel_setup::step()==S::HomeTour);
++  for(int i=0;i<5;++i)click_text("Next");
++  assert(panel_setup::step()==S::Ready);save("customer-06-ready.ppm");
++  click_text("Start using 3Dup");assert(!panel_setup::active());
++  ui::sim_show(9,0);run(400);save("customer-07-settings.ppm");
++  click_text("Quick guide");click_text("Back");assert(!panel_setup::active());
++  ui::sim_show(9,0);run(400);
++  click_text("Factory reset");save("customer-08-reset.ppm");
++  click_text("Cancel",true);assert(!panel_setup::reset_requested);
++  click_text("Factory reset");click_text("Erase panel",true);
++  assert(panel_setup::reset_requested && panel_setup::active());
++  puts("PASS first-run routing, failure recovery, idle protection, machine confirmation, tour/back, completion, replay and reset confirmation");
++}
+

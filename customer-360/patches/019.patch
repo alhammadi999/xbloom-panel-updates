@@ -1,0 +1,13 @@
+--- /dev/null
++++ b/include/reset_sequence.h
+@@ -0,0 +1,9 @@
++#pragma once
++namespace panel_setup {
++// The pending marker stays in NVS until the filesystem has been wiped.
++// If power fails, next boot repeats the operation before starting services.
++template<class Backend> bool finish_reset(Backend &backend) {
++  if (!backend.erase_files()) return false;
++  return backend.erase_preferences();
++}
++}
+

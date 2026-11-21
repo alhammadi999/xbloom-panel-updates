@@ -1,0 +1,55 @@
+--- a/src/ble_link.cpp
++++ b/src/ble_link.cpp
+@@ -370,6 +370,8 @@
+   ui_msg(UiEvType::CmdResult, err, (int32_t)c.type, err == nullptr);
+ }
+ 
++std::string paired_peer;
++std::atomic<bool> remember_requested{false}, remembered{false};
+ const NimBLEAdvertisedDevice *scan_for_xbloom() {
+   NimBLEScan *scan = NimBLEDevice::getScan();
+   scan->setActiveScan(true);
+@@ -379,7 +381,7 @@
+   for (int i = 0; i < res.getCount(); ++i) {
+     const NimBLEAdvertisedDevice *d = res.getDevice(i);
+     std::string n = d->getName();
+-    if (n.size() >= 6 && strncasecmp(n.c_str(), NAME_PREFIX, 6) == 0) return d;
++    if (n.size() >= 6 && strncasecmp(n.c_str(), NAME_PREFIX, 6) == 0 && (paired_peer.empty() || d->getAddress().toString() == paired_peer)) return d;
+   }
+   return nullptr;
+ }
+@@ -421,6 +423,8 @@
+ }
+ 
+ void ble_task(void *) {
++  Preferences pairing;
++  if (pairing.begin("panel-pair", true)) { paired_peer=pairing.getString("peer", "").c_str(); pairing.end(); }
+   NimBLEDevice::init("xBloom Panel");
+   NimBLEDevice::setMTU(247);
+   NimBLEDevice::setPower(9);
+@@ -449,6 +453,15 @@
+       set_state(LinkState::Connected, name.c_str());
+       read_report(N_MACHINE_INFO); // request the initial activity and water feed
+     }
++    if (remember_requested.exchange(false) && g_client && g_client->isConnected()) {
++      const std::string peer = g_client->getPeerAddress().toString();
++      Preferences pairing;
++      if (pairing.begin("panel-pair", false)) {
++        if (pairing.putString("peer",peer.c_str()) == peer.size()) { paired_peer=peer; remembered=true; }
++        else ui_msg(UiEvType::Fault,"Could not save machine. Please try again.");
++        pairing.end();
++      } else ui_msg(UiEvType::Fault,"Could not save machine. Please try again.");
++    }
+     if (xQueueReceive(q_cmd, &cmd, 0)) run_cmd(cmd);
+     pump(30);
+   }
+@@ -469,6 +482,8 @@
+ bool post(const BleCmd &c) { return xQueueSend(q_cmd, &c, 0) == pdTRUE; }
+ bool poll(UiEvent &e) { return xQueueReceive(q_ui, &e, 0) == pdTRUE; }
+ LinkState state() { return g_state; }
++bool remember_current() { if (g_state!=LinkState::Connected) return false; remember_requested=true; return true; }
++bool take_remembered() { return remembered.exchange(false); }
+ bool panel_can_restart() {
+   // Standalone panels can update too. On a connected Studio, require its home report.
+   return !settings_operation && g_state != LinkState::Connecting && (g_state != LinkState::Connected || last_activity.load() == 1);
+

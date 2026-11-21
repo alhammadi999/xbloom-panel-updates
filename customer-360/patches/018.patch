@@ -1,0 +1,16 @@
+--- /dev/null
++++ b/include/panel_setup.h
+@@ -0,0 +1,12 @@
++#pragma once
++#include <stdint.h>
++namespace panel_setup {
++enum class Step : uint8_t { Welcome, Wifi, Account, Machine, HomeTour, RecipesTour, AppsTour, MachineTour, ScreenTour, Ready, Done };
++// Called before any networking, filesystem users or saved preferences start.
++bool boot();
++Step step();
++bool save(Step step);
++bool active();
++// Persist a reset request, then restart. No account/machine API is called.
++bool request_reset();
++}
+

@@ -1,0 +1,52 @@
+--- /dev/null
++++ b/src/panel_setup.cpp
+@@ -0,0 +1,48 @@
++#include "panel_setup.h"
++#include "reset_sequence.h"
++#include <Arduino.h>
++#include <Preferences.h>
++#include <LittleFS.h>
++#include <nvs_flash.h>
++namespace panel_setup {
++namespace {
++Step current = Step::Welcome;
++struct ResetBackend {
++  bool erase_files() { return LittleFS.format(); }
++  bool erase_preferences() {
++    return nvs_flash_erase() == ESP_OK && nvs_flash_init() == ESP_OK;
++  }
++};
++}
++bool boot() {
++  Preferences prefs;
++  if (!prefs.begin("first-use", false)) return false;
++  const bool reset = prefs.getBool("reset", false);
++  const uint8_t saved = prefs.getUChar("step", 0);
++  prefs.end();
++  if (reset) {
++    ResetBackend backend;
++    if (!finish_reset(backend)) return false;
++    current = Step::Welcome;
++  } else current = saved <= uint8_t(Step::Done) ? Step(saved) : Step::Welcome;
++  return true;
++}
++Step step() { return current; }
++bool active() { return current != Step::Done; }
++bool save(Step next) {
++  Preferences prefs;
++  if (!prefs.begin("first-use", false)) return false;
++  bool ok = prefs.putUChar("step", uint8_t(next)) == 1;
++  prefs.end();
++  if (ok) current = next;
++  return ok;
++}
++bool request_reset() {
++  Preferences prefs;
++  if (!prefs.begin("first-use", false)) return false;
++  bool ok = prefs.putBool("reset", true) == 1;
++  prefs.end();
++  if (ok) ESP.restart();
++  return ok;
++}
++}
+

@@ -1,0 +1,10 @@
+--- a/THIRD_PARTY_NOTICES.md
++++ b/THIRD_PARTY_NOTICES.md
+@@ -67,3 +67,6 @@
+ ## Spotify brand asset
+ 
+ The Spotify full logo is the official green RGB asset from https://developer.spotify.com/images/guidelines/design/2024-spotify-full-logo.zip, converted to RGB565 for this screen. Spotify marks belong to Spotify. Use follows https://developer.spotify.com/documentation/design. No endorsement is implied.
++
++## Noto Naskh Arabic
++Noto Naskh Arabic SemiBold from the LVGL v9.1.0 multilingual demo. Copyright The Noto Project Authors. SIL Open Font License 1.1; see assets/fonts/OFL.txt. Generated bitmap subsets provide Arabic reading support.
+

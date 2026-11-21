@@ -1,0 +1,21 @@
+--- a/src/fonts/inter_20b.c
++++ b/src/fonts/inter_20b.c
+@@ -3142,6 +3142,8 @@
+  *  PUBLIC FONT
+  *----------------*/
+ 
++LV_FONT_DECLARE(arabic_20);
++
+ /*Initialize a public general font descriptor*/
+ #if LVGL_VERSION_MAJOR >= 8
+ const lv_font_t inter_20b = {
+@@ -3161,7 +3163,7 @@
+ #endif
+     .dsc = &font_dsc,          /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
+ #if LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
+-    .fallback = NULL,
++    .fallback = &arabic_20,
+ #endif
+     .user_data = NULL,
+ };
+

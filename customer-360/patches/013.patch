@@ -1,0 +1,21 @@
+--- a/src/fonts/inter_44.c
++++ b/src/fonts/inter_44.c
+@@ -4124,6 +4124,8 @@
+  *  PUBLIC FONT
+  *----------------*/
+ 
++LV_FONT_DECLARE(arabic_44);
++
+ /*Initialize a public general font descriptor*/
+ #if LVGL_VERSION_MAJOR >= 8
+ const lv_font_t inter_44 = {
+@@ -4143,7 +4145,7 @@
+ #endif
+     .dsc = &font_dsc,          /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
+ #if LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
+-    .fallback = NULL,
++    .fallback = &arabic_44,
+ #endif
+     .user_data = NULL,
+ };
+

@@ -1,0 +1,12 @@
+--- a/platformio.ini
++++ b/platformio.ini
+@@ -22,7 +22,7 @@
+ build_unflags = -Os
+ build_flags =
+ 	${common.build_flags}
+-	-DFW_VERSION='"3.5.0"'
++	-DFW_VERSION='"3.6.0"'
+ lib_deps =
+ 	https://github.com/lvgl/lvgl.git#v9.1.0
+ 	https://github.com/lovyan03/LovyanGFX.git#1.2.26
+

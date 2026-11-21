@@ -1,0 +1,10 @@
+--- a/include/ble_link.h
++++ b/include/ble_link.h
+@@ -69,4 +69,6 @@
+ bool poll(UiEvent &ev);          // from UI loop; non-blocking
+ LinkState state();
+ bool panel_can_restart();
++bool remember_current();
++bool take_remembered();
+ }  // namespace ble_link
+

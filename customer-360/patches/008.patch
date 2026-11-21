@@ -1,0 +1,21 @@
+--- a/src/fonts/inter_16.c
++++ b/src/fonts/inter_16.c
+@@ -2452,6 +2452,8 @@
+  *  PUBLIC FONT
+  *----------------*/
+ 
++LV_FONT_DECLARE(arabic_16);
++
+ /*Initialize a public general font descriptor*/
+ #if LVGL_VERSION_MAJOR >= 8
+ const lv_font_t inter_16 = {
+@@ -2471,7 +2473,7 @@
+ #endif
+     .dsc = &font_dsc,          /*The custom font data. Will be accessed by `get_glyph_bitmap/dsc` */
+ #if LV_VERSION_CHECK(8, 2, 0) || LVGL_VERSION_MAJOR >= 9
+-    .fallback = NULL,
++    .fallback = &arabic_16,
+ #endif
+     .user_data = NULL,
+ };
+

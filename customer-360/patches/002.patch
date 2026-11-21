@@ -1,0 +1,54 @@
+--- a/src/dotfx.cpp
++++ b/src/dotfx.cpp
+@@ -1,3 +1,4 @@
++#include "arabic_text.h"
+ #include "dotfx.h"
+ 
+ #include <Arduino.h>
+@@ -317,6 +318,7 @@
+ lv_obj_t *label(lv_obj_t *p, const lv_font_t *f, uint32_t color) {
+   lv_obj_t *l = lv_label_create(p);
+   lv_label_set_text(l, "");
++  lv_obj_set_style_base_dir(l, LV_BASE_DIR_AUTO, 0);
+   lv_obj_set_style_text_font(l, f, 0);
+   lv_obj_set_style_text_color(l, hexc(color), 0);
+   return l;
+@@ -518,7 +520,7 @@
+ 
+ void intro_play(const char *name, const char *sub) {
+   build();
+-  lv_label_set_text(in_name, name);
++  arabic_text::set(in_name, name);
+   lv_label_set_text(in_sub, sub);
+   lv_obj_align(in_name, LV_ALIGN_TOP_MID, 0, 318);
+   lv_obj_align(in_sub, LV_ALIGN_TOP_MID, 0, 368);
+@@ -538,7 +540,7 @@
+   lv_obj_add_flag(in_layer, LV_OBJ_FLAG_HIDDEN);
+   brew_hide();
+   lv_label_set_text(fn_title, "Enjoy");
+-  lv_label_set_text(fn_name, name);
++  arabic_text::set(fn_name, name);
+   lv_obj_align(fn_title, LV_ALIGN_TOP_MID, 0, 290);
+   lv_obj_align(fn_name, LV_ALIGN_TOP_MID, 0, 336);
+   char v[3][16];
+@@ -571,7 +573,7 @@
+   bs_on_stop = on_stop;
+   bs_level = 0;
+   bs_v = {};
+-  lv_label_set_text(bs_name, name);
++  arabic_text::set(bs_name, name);
+   lv_obj_remove_flag(bs_layer, LV_OBJ_FLAG_HIDDEN);
+   lv_obj_move_foreground(bs_layer);
+   restart(bs_field);
+@@ -581,8 +583,8 @@
+ void brew_update(const BrewView &v) {
+   if (!bs_on) return;
+   bs_v = v;
+-  lv_label_set_text(bs_title, v.paused ? "Paused" : v.pour_title);
+-  lv_label_set_text(bs_sub, v.pour_sub);
++  arabic_text::set(bs_title, v.paused ? "Paused" : v.pour_title);
++  arabic_text::set(bs_sub, v.pour_sub);
+   char b[24];
+   snprintf(b, sizeof b, "%.0f", v.water_ml);
+   lv_label_set_text(bs_water, b);
+

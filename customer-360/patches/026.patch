@@ -1,0 +1,22 @@
+--- /dev/null
++++ b/tests/test_reset_sequence.cpp
+@@ -0,0 +1,18 @@
++#include "reset_sequence.h"
++#include <cassert>
++#include <string>
++struct Device {
++  bool pending=true, files=true, prefs=true, fail_files=false, fail_prefs=false;
++  std::string order;
++  bool erase_files() {order+='F';if(fail_files)return false;files=false;return true;}
++  bool erase_preferences() {order+='N';if(fail_prefs)return false;prefs=false;pending=false;return true;}
++};
++int main() {
++  Device d; d.fail_files=true;
++  assert(!panel_setup::finish_reset(d));assert(d.pending && d.prefs && d.order=="F");
++  d.fail_files=false;d.fail_prefs=true;
++  assert(!panel_setup::finish_reset(d));assert(d.pending && !d.files && d.prefs);
++  // A power loss after the file wipe must leave the pending marker for retry.
++  d.fail_prefs=false;assert(panel_setup::finish_reset(d));assert(!d.pending && !d.files && !d.prefs);
++  assert(d.order=="FFNFN");
++}
+

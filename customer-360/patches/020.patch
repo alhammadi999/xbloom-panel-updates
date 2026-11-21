@@ -1,0 +1,11 @@
+--- a/sim/cloud_stub.cpp
++++ b/sim/cloud_stub.cpp
+@@ -7,6 +7,7 @@
+ static Acct st = Acct::SignedIn;
+ static bool sent = false;
+ void begin() {}
++void sim_state(Acct value) { st=value; }
+ Acct state() { return st; }
+ const char *email() { return "name@email.com"; }
+ const char *message() { return ""; }
+
