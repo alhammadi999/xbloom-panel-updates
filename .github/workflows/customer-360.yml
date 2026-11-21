@@ -19,8 +19,8 @@ jobs:
           unzip -q source/welcome-screensaver.zip -d firmware-src
           python - <<'PY'
           from pathlib import Path
-          for p in Path('firmware-src').rglob('*'):
-              if p.is_file() and p.suffix in ('.cpp','.h','.inc','.c','.py','.txt','.ini','.md'):
+          for p in list(Path('firmware-src').rglob('*')) + list(Path('customer-360/patches').glob('*.patch')):
+              if p.is_file() and p.suffix in ('.cpp','.h','.inc','.c','.py','.txt','.ini','.md','.patch'):
                   p.write_text(p.read_text(encoding='utf-8'),encoding='utf-8')
           PY
           cd firmware-src
@@ -97,5 +97,6 @@ jobs:
           name: customer-3.6.0-candidate
           path: firmware-src/candidate
           if-no-files-found: error
+
 
 
