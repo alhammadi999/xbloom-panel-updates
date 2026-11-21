@@ -1,0 +1,344 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -5,6 +5,8 @@
+ // Layout: one spacing system (ui_theme.h) — 36 px status bar, 24 px margins,
+ // 16 px gaps, 20 px card corners — and numbers aligned on their baselines.
+ #include "ui.h"
++#include "i18n.h"
++#include "text_input.h"
+ #include "appearance.h"
+ #include "panel_setup.h"
+ #include "brand_logo.h"
+@@ -200,7 +202,7 @@
+ extern bool machine_waiting;
+ void show_toast(const char *msg);
+ void post(BleCmdType t, int a = 0, int b = 0, double x = 0, double y = 0, double z = 0) {
+-  if (machine_waiting && t != BleCmdType::Stop && t != BleCmdType::BrewerStop && t != BleCmdType::GrinderStop) return show_toast("Wait for the Studio settings operation.");
++  if (machine_waiting && t != BleCmdType::Stop && t != BleCmdType::BrewerStop && t != BleCmdType::GrinderStop) return show_toast(i18n::tr("Wait for the Studio settings operation."));
+   BleCmd c;
+   c.type = t;
+   c.a = a; c.b = b; c.x = x; c.y = y; c.z = z;
+@@ -336,7 +338,7 @@
+ double ratio_of(const xb::Recipe &r) { return round(r.total_water() / r.dose_g * 10) / 10; }
+ 
+ void recipe_line(const xb::Recipe &r, char *buf, size_t n) {
+-  snprintf(buf, n, "1:%g-%.0fml   |   %gg   |   %d Pours", ratio_of(r), r.total_water(), r.dose_g, r.n_pours);
++  snprintf(buf, n, i18n::tr("1:%g-%.0fml   |   %gg   |   %d Pours"), ratio_of(r), r.total_water(), r.dose_g, r.n_pours);
+ }
+ 
+ // Pastel recipe tile: label top-left, cup bottom-left, big pour count bleeding
+@@ -379,7 +381,7 @@
+   const int inner = lv_obj_get_width(c.card) - 16;
+   const double r = (c.v - c.min) / (c.max - c.min);
+   lv_obj_set_width(c.fill, (int)(inner * fmax(0.04, fmin(1.0, r))));
+-  char buf[16];
++  char buf[48];
+   snprintf(buf, sizeof buf, c.fmt, c.v);
+   set_text(c.value, buf);
+ }
+@@ -549,7 +551,7 @@
+     x += FAV_W + G;
+   }
+   if (x == 0) {
+-    lv_obj_t *e = text(fav_row, "No favorites yet", &inter_20, hex(0xBDB4AC));
++    lv_obj_t *e = text(fav_row, i18n::tr("No favorites yet"), &inter_20, hex(0xBDB4AC));
+     lv_obj_align(e, LV_ALIGN_LEFT_MID, 0, 0);
+   }
+ }
+@@ -567,15 +569,15 @@
+   lv_obj_set_style_arc_color(home_spin, hex(HAIRLINE), LV_PART_MAIN);
+   lv_obj_set_style_arc_color(home_spin, hex(GREEN), LV_PART_INDICATOR);
+   home_dot = box(page, 0, 0, 10, 10, GREEN, LV_RADIUS_CIRCLE);
+-  home_status = text(page, "Connecting", &inter_16, hex(MUTED));
++  home_status = text(page, i18n::tr("Connecting"), &inter_16, hex(MUTED));
+ 
+   // module tiles (as tall as the favorites panel below allows)
+   const int fav_h = 168, fav_y = H - TABBAR_H - G - fav_h;
+   const int tile_y = SB + 8, tile_h = fav_y - G - tile_y, tile_w = (W - 2 * M - 2 * G) / 3;
+   struct { const char *name; Dots d; uint32_t bg, fg; lv_event_cb_t cb; } tiles[3] = {
+-      {"Grinder", Dots::Grinder, GRINDER_BG, GRINDER_FG, open_grinder},
+-      {"Brewer", Dots::Brewer, BREWER_BG, BREWER_FG, open_brewer},
+-      {"Scale", Dots::Scale, SCALE_BG, SCALE_FG, open_scale},
++      {i18n::tr("Grinder"), Dots::Grinder, GRINDER_BG, GRINDER_FG, open_grinder},
++      {i18n::tr("Brewer"), Dots::Brewer, BREWER_BG, BREWER_FG, open_brewer},
++      {i18n::tr("Scale"), Dots::Scale, SCALE_BG, SCALE_FG, open_scale},
+   };
+   for (int i = 0; i < 3; ++i) {
+     lv_obj_t *t = box(page, M + i * (tile_w + G), tile_y, tile_w, tile_h, tiles[i].bg, R);
+@@ -589,7 +591,7 @@
+ 
+   // favorites
+   lv_obj_t *fav = box(page, M, fav_y, W - 2 * M, fav_h, FAV_PANEL, R);
+-  lv_obj_t *ft = text(fav, "Favorite Recipes", &inter_20b, hex(TEXT));
++  lv_obj_t *ft = text(fav, i18n::tr("Favorite Recipes"), &inter_20b, hex(TEXT));
+   lv_obj_set_pos(ft, 20, 16);
+   fav_row = lv_obj_create(fav);
+   lv_obj_remove_style_all(fav_row);
+@@ -619,21 +621,21 @@
+     lv_label_set_long_mode(n, LV_LABEL_LONG_DOT);
+     lv_obj_set_width(n, W - 2 * M - TILE - 80);
+     lv_obj_set_pos(n, TILE + 20, 18);
+-    char buf[64];
++    char buf[192];
+     recipe_line(lib[i].r, buf, sizeof buf);
+     lv_obj_t *s = text(row, buf, &inter_16, hex(MUTED));
+     lv_obj_set_pos(s, TILE + 20, 48);
+     lv_obj_t *chev = text(row, LV_SYMBOL_RIGHT, &lv_font_montserrat_16, hex(0x48484A));
+     lv_obj_align(chev, LV_ALIGN_RIGHT_MID, -4, 0);
+     if (lib[i].dirty && lib[i].kind != KIND_SEED && cloud::state() == cloud::Acct::SignedIn) {
+-      lv_obj_t *d = text(row, "Not saved to account", &inter_14, hex(0xE0A458));
++      lv_obj_t *d = text(row, i18n::tr("Not saved to account"), &inter_14, hex(0xE0A458));
+       lv_obj_align(d, LV_ALIGN_RIGHT_MID, -28, 0);
+     }
+     y += ROW_H + 8;
+   }
+   if (y == 0) {
+-    lv_obj_t *e = text(rec_list, seg == 1 ? "Recipes saved from share links appear here." :
+-                                 seg == 0 ? "Sign in under Screen > xBloom account to bring in your recipes." : "",
++    lv_obj_t *e = text(rec_list, seg == 1 ? i18n::tr("Recipes saved from share links appear here.") :
++                                 seg == 0 ? i18n::tr("Sign in under Screen > xBloom account to bring in your recipes.") : "",
+                        &inter_20, hex(MUTED));
+     lv_obj_set_pos(e, 4, 16);
+   }
+@@ -648,13 +650,13 @@
+ }
+ 
+ void build_recipes_page(lv_obj_t *page) {
+-  lv_obj_t *t = text(page, "My Recipes", &inter_34b, hex(TEXT));
++  lv_obj_t *t = text(page, i18n::tr("My Recipes"), &inter_34b, hex(TEXT));
+   lv_obj_set_pos(t, M, SB + 2);
+-  pill(page, W - M - 120, SB + 4, 120, 44, "+  New", 0x2C2C2E, TEXT, [](lv_event_t *) { open_editor(0); });
++  pill(page, W - M - 120, SB + 4, 120, 44, i18n::tr("+  New"), 0x2C2C2E, TEXT, [](lv_event_t *) { open_editor(0); });
+   const int seg_y = 94, seg_h = 48, half = (W - 2 * M - 8) / 3;
+   lv_obj_t *segbox = box(page, M, seg_y, W - 2 * M, seg_h, SEG_BG, seg_h / 2);
+   seg_pill = box(segbox, 4, 4, half, seg_h - 8, 0xFFFFFF, (seg_h - 8) / 2);
+-  const char *names[3] = {"Created", "Shared", "Starter"};
++  const char *names[3] = {i18n::tr("Created"), i18n::tr("Shared"), i18n::tr("Starter")};
+   for (int i = 0; i < 3; ++i) {
+     lv_obj_t *hit = group(segbox, 4 + i * half, 0, half, seg_h);
+     seg_lbl[i] = text(hit, names[i], &inter_20b, hex(MUTED));
+@@ -698,11 +700,11 @@
+   lv_obj_t *r = group(card, 0, i * h, w, h);
+   if (i > 0) box(r, 16, 0, w - 16, 1, HAIRLINE, 0);
+   lv_obj_t *l = text(r, label, &inter_20, hex(TEXT));
+-  lv_obj_align(l, LV_ALIGN_LEFT_MID, 16, 0);
++  lv_obj_align(l, i18n::arabic()?LV_ALIGN_RIGHT_MID:LV_ALIGN_LEFT_MID, i18n::arabic()?-16:16, 0);
+   int right = -16;
+   if (cb) {
+-    lv_obj_t *ch = text(r, LV_SYMBOL_RIGHT, &lv_font_montserrat_16, hex(0x48484A));
+-    lv_obj_align(ch, LV_ALIGN_RIGHT_MID, -16, 0);
++    lv_obj_t *ch = text(r, i18n::arabic()?LV_SYMBOL_LEFT:LV_SYMBOL_RIGHT, &lv_font_montserrat_16, hex(0x48484A));
++    lv_obj_align(ch, i18n::arabic()?LV_ALIGN_LEFT_MID:LV_ALIGN_RIGHT_MID, i18n::arabic()?16:-16, 0);
+     right = -40;
+     on_click(r, cb);
+     lv_obj_set_style_bg_color(r, hex(0x2C2C2E), LV_STATE_PRESSED);
+@@ -714,7 +716,7 @@
+     lv_obj_update_layout(l);
+     lv_obj_set_width(*value_out, w - 16 - lv_obj_get_width(l) - 24 + right);  // all the space the label leaves
+     lv_obj_set_style_text_align(*value_out, LV_TEXT_ALIGN_RIGHT, 0);
+-    lv_obj_align(*value_out, LV_ALIGN_RIGHT_MID, right, 0);
++    lv_obj_align(*value_out, i18n::arabic()?LV_ALIGN_LEFT_MID:LV_ALIGN_RIGHT_MID, i18n::arabic()?-right:right, 0);
+   }
+   return r;
+ }
+@@ -722,7 +724,7 @@
+ lv_obj_t *toggle(lv_obj_t *row_obj, bool on, lv_event_cb_t cb) {
+   lv_obj_t *s = lv_switch_create(row_obj);
+   lv_obj_set_size(s, 56, 32);
+-  lv_obj_align(s, LV_ALIGN_RIGHT_MID, -16, 0);
++  lv_obj_align(s, i18n::arabic()?LV_ALIGN_LEFT_MID:LV_ALIGN_RIGHT_MID, i18n::arabic()?16:-16, 0);
+   lv_obj_set_style_bg_color(s, hex(0x39393D), LV_PART_MAIN);
+   lv_obj_set_style_bg_color(s, hex(GREEN), LV_PART_INDICATOR | LV_STATE_CHECKED);
+   lv_obj_set_style_bg_color(s, hex(0xFFFFFF), LV_PART_KNOB);
+@@ -737,13 +739,13 @@
+   lv_obj_t *d = lv_dropdown_create(row_obj);
+   lv_dropdown_set_options_static(d, options);
+   lv_obj_set_size(d, 140, 38);
+-  lv_obj_align(d, LV_ALIGN_RIGHT_MID, -12, 0);
++  lv_obj_align(d, i18n::arabic()?LV_ALIGN_LEFT_MID:LV_ALIGN_RIGHT_MID, i18n::arabic()?12:-12, 0);
+   lv_obj_set_style_bg_color(d, hex(0x2C2C2E), 0);
+   lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
+   lv_obj_set_style_border_width(d, 0, 0);
+   lv_obj_set_style_radius(d, 10, 0);
+   lv_obj_set_style_text_color(d, hex(TEXT), 0);
+-  lv_obj_set_style_text_font(d, &inter_16, 0);
++  lv_obj_set_style_text_font(d, arabic_text::font(&inter_16,options), 0);
+   lv_obj_set_style_pad_hor(d, 12, 0);
+   lv_obj_set_style_pad_ver(d, 9, 0);
+   lv_obj_set_style_text_font(d, &lv_font_montserrat_14, LV_PART_INDICATOR);  // the arrow is an icon glyph
+@@ -753,7 +755,7 @@
+   lv_obj_set_style_border_width(l, 0, 0);
+   lv_obj_set_style_radius(l, 12, 0);
+   lv_obj_set_style_text_color(l, hex(TEXT), 0);
+-  lv_obj_set_style_text_font(l, &inter_20, 0);
++  lv_obj_set_style_text_font(l, arabic_text::font(&inter_20,options), 0);
+   lv_obj_set_style_text_line_space(l, 18, 0);
+   lv_obj_set_style_pad_all(l, 10, 0);
+   lv_obj_set_style_max_height(l, 300, 0);
+@@ -781,6 +783,7 @@
+   lv_label_set_long_mode(t, LV_LABEL_LONG_DOT);
+   lv_obj_set_width(t, W - 2 * M - 120);
+   lv_obj_set_pos(t, M + 44, SB + 10);
++  if(i18n::arabic()) lv_obj_set_style_text_align(t,LV_TEXT_ALIGN_RIGHT,0);
+   if (title_out) *title_out = t;
+ }
+ 
+@@ -800,44 +803,60 @@
+ #include "ui_machine.inc"
+ #include "ui_spotify.inc"
+ 
++
++void open_language(lv_event_t *) {
++  if (!ble_link::panel_can_restart() || flow!=Flow::Idle || grinding || pouring || sw_running || machine_waiting
++      || cloud::busy() || cloud::state()==cloud::Acct::SigningIn || net::update_state()==net::Upd::Receiving) {
++    show_toast(i18n::tr("Finish the current task before changing language.")); return;
++  }
++  confirm(i18n::tr("Change language?"), i18n::tr("The panel will restart. Your settings and recipes stay saved."), i18n::tr("Restart"), [] {
++    if (!ble_link::panel_can_restart() || flow!=Flow::Idle || grinding || pouring || machine_waiting || cloud::busy()
++        || net::update_state()==net::Upd::Receiving || net::update_state()==net::Upd::Done) {
++      show_toast(i18n::tr("Finish the current task before changing language.")); return;
++    }
++    if (!i18n::save_and_restart(!i18n::arabic())) show_toast(i18n::tr("Could not save language."));
++  });
++}
++
+ void build_settings_page(lv_obj_t *page) {
+-  lv_obj_t *t = text(page, "Screen settings", &inter_34b, hex(TEXT));
++  lv_obj_t *t = text(page, i18n::tr("Screen settings"), &inter_34b, hex(TEXT));
+   lv_obj_set_pos(t, M, SB + 2);
+   const int rh = 52, cw = (W - 2 * M - G) / 2, y0 = 84, x2 = M + cw + G;
+ 
+-  lv_obj_t *c1 = section(page, "CONNECTION", M, y0, cw, 4, rh);
++  lv_obj_t *c1 = section(page, i18n::tr("CONNECTION"), M, y0, cw, 4, rh);
+   row(c1, 0, rh, "Wi-Fi", &st_wifi_val, open_wifi);
+-  row(c1, 1, rh, "Software update", &st_ver_val, open_update);
+-  row(c1, 2, rh, "xBloom account", &st_acc_val, open_account);
++  row(c1, 1, rh, i18n::tr("Software update"), &st_ver_val, open_update);
++  row(c1, 2, rh, i18n::tr("xBloom account"), &st_acc_val, open_account);
+   // Sync: a button on the right, the last sync time next to it
+-  lv_obj_t *rs = row(c1, 3, rh, "Recipes", nullptr, nullptr);
+-  st_sync_btn = pill(rs, cw - 16 - 120, (rh - 36) / 2, 120, 36, "Sync now", 0xFFFFFF, 0x000000, [](lv_event_t *) {
++  lv_obj_t *rs = row(c1, 3, rh, i18n::tr("Recipes"), nullptr, nullptr);
++  st_sync_btn = pill(rs, i18n::arabic()?16:cw - 16 - 120, (rh - 36) / 2, 120, 36, i18n::tr("Sync now"), 0xFFFFFF, 0x000000, [](lv_event_t *) {
+     if (cloud::state() == cloud::Acct::SignedIn) { cloud::sync_now(); refresh_sync_row(); }
+     else open_account();
+   });
+   st_sync_val = text(rs, "", &inter_16, hex(MUTED));
+-  lv_obj_align(st_sync_val, LV_ALIGN_RIGHT_MID, -(16 + 120 + 12), 0);
++  lv_obj_align(st_sync_val, i18n::arabic()?LV_ALIGN_LEFT_MID:LV_ALIGN_RIGHT_MID, i18n::arabic()?148:-148, 0);
+   set_text(st_ver_val, FW_VERSION);
+ 
+-  lv_obj_t *c2 = section(page, "SCREEN", x2, y0, cw, 4, rh);
+-  row(c2, 0, rh, "Screensaver", nullptr, [](lv_event_t *) { appearance::open_settings(); });
+-  lv_obj_t *rsl = row(c2, 1, rh, "Sleep after", nullptr, nullptr);
+-  st_sleep_dd = dropdown(rsl, "1 min\n3 min\n5 min\n10 min\nNever", [](lv_event_t *e) {
++  lv_obj_t *c2 = section(page, i18n::tr("SCREEN"), x2, y0, cw, 4, rh);
++  row(c2, 0, rh, i18n::tr("Screensaver"), nullptr, [](lv_event_t *) { appearance::open_settings(); });
++  lv_obj_t *rsl = row(c2, 1, rh, i18n::tr("Sleep after"), nullptr, nullptr);
++  st_sleep_dd = dropdown(rsl, i18n::tr("1 min\n3 min\n5 min\n10 min\nNever"), [](lv_event_t *e) {
+     static const int opts[] = {1, 3, 5, 10, 0};
+     net::set_pref_sleep_min(opts[lv_dropdown_get_selected((lv_obj_t *)lv_event_get_target(e)) % 5]);
+   });
+-  lv_obj_t *rcc = row(c2, 2, rh, "Clock colour", nullptr, nullptr);
+-  st_ccolor_dd = dropdown(rcc, "White\nBlue\nBrown", [](lv_event_t *e) {
++  lv_obj_t *rcc = row(c2, 2, rh, i18n::tr("Clock colour"), nullptr, nullptr);
++  st_ccolor_dd = dropdown(rcc, i18n::tr("White\nBlue\nBrown"), [](lv_event_t *e) {
+     net::set_pref_clock_color(lv_dropdown_get_selected((lv_obj_t *)lv_event_get_target(e)) % 3);
+   });
+-  lv_obj_t *r2 = row(c2, 3, rh, "Off at night (11 PM-6 AM)", nullptr, nullptr);
++  lv_obj_t *r2 = row(c2, 3, rh, i18n::tr("Off at night (11 PM-6 AM)"), nullptr, nullptr);
+   sw_night = toggle(r2, net::pref_night_off(), [](lv_event_t *e) {
+     net::set_pref_night_off(lv_obj_has_state((lv_obj_t *)lv_event_get_target(e), LV_STATE_CHECKED));
+   });
+   refresh_screen_prefs();
+ 
+-  pill(page, M, 356, 220, 48, "Quick guide", SURFACE, TEXT, replay_setup_guide);
+-  pill(page, x2, 356, cw, 48, "Factory reset", SURFACE, 0xFF6B6B, open_factory_reset);
++  pill(page, M+180, 356, 180, 48, i18n::arabic()?"English":"العربية", SURFACE, TEXT, open_language);
++  pill(page, M, 356, 168, 48, i18n::tr("Quick guide"), SURFACE, TEXT, replay_setup_guide);
++  pill(page, x2, 356, cw, 48, i18n::tr("Factory reset"), SURFACE, 0xFF6B6B, open_factory_reset);
+ 
+ }
+ 
+@@ -851,15 +870,15 @@
+ }
+ void refresh_sync_row() {
+   if (!st_sync_val) return;
+-  if (cloud::state() != cloud::Acct::SignedIn) { set_text(st_sync_val, "Not signed in"); return; }
+-  if (cloud::busy()) { set_text(st_sync_val, "Syncing..."); return; }
++  if (cloud::state() != cloud::Acct::SignedIn) { set_text(st_sync_val, i18n::tr("Not signed in")); return; }
++  if (cloud::busy()) { set_text(st_sync_val, i18n::tr("Syncing...")); return; }
+   const time_t ls = cloud::last_sync();
+   if (!ls) { set_text(st_sync_val, ""); return; }
+   struct tm t;
+   localtime_r(&ls, &t);
+   char hm[12], b[24];
+   format_clock(t, hm, sizeof hm);
+-  snprintf(b, sizeof b, "Synced %s", hm);
++  snprintf(b, sizeof b, i18n::tr("Synced %s"), hm);
+   set_text(st_sync_val, b);
+ }
+ 
+@@ -880,7 +899,7 @@
+   wf_n = net::scan_results(wf_aps, 24);
+   const int rh = 56, w = lv_obj_get_style_width(wf_list, 0);
+   if (wf_n == 0) {
+-    lv_obj_t *e = text(wf_list, net::scan_running() ? "Looking for networks..." : "No networks found",
++    lv_obj_t *e = text(wf_list, net::scan_running() ? i18n::tr("Looking for networks...") : i18n::tr("No networks found"),
+                        &inter_20, hex(MUTED));
+     lv_obj_set_pos(e, 16, 16);
+     lv_obj_set_height(wf_list, 56);
+@@ -898,7 +917,7 @@
+     lv_obj_set_width(n, w - 150);
+     lv_obj_align(n, LV_ALIGN_LEFT_MID, 52, 0);
+     const bool here = joined && strcmp(wf_aps[i].ssid, net::ssid()) == 0;
+-    lv_obj_t *tag = text(r, here ? LV_SYMBOL_OK : wf_aps[i].secure ? "Secured" : "Open",
++    lv_obj_t *tag = text(r, here ? LV_SYMBOL_OK : wf_aps[i].secure ? i18n::tr("Secured") : i18n::tr("Open"),
+                          here ? &lv_font_montserrat_20 : &inter_16, hex(here ? GREEN : MUTED));
+     lv_obj_align(tag, LV_ALIGN_RIGHT_MID, -16, 0);
+     on_click(r, on_network, &wf_aps[i]);
+@@ -909,25 +928,25 @@
+ }
+ 
+ void refresh_wifi_status() {
+-  const char *title = "Not connected", *sub = "Choose your network from the list.";
+-  char buf[96];
++  const char *title = i18n::tr("Not connected"), *sub = i18n::tr("Choose your network from the list.");
++  char buf[288];
+   switch (net::state()) {
+     case net::Wifi::Connected:
+       title = net::ssid();
+-      snprintf(buf, sizeof buf, "Connected\n%s", net::ip());
++      snprintf(buf, sizeof buf, i18n::tr("Connected\n%s"), net::ip());
+       sub = buf;
+       break;
+     case net::Wifi::Connecting:
+       title = net::ssid();
+-      sub = "Connecting...";
++      sub = i18n::tr("Connecting...");
+       break;
+     case net::Wifi::WrongPassword:
+       title = net::ssid();
+-      sub = "Wrong password. Tap the network to try again.";
++      sub = i18n::tr("Wrong password. Tap the network to try again.");
+       break;
+     case net::Wifi::NotFound:
+       title = net::ssid();
+-      sub = "Network not found. Is it in range?";
++      sub = i18n::tr("Network not found. Is it in range?");
+       break;
+     default: break;
+   }
+@@ -955,9 +974,9 @@
+   lv_obj_set_width(wf_status_sub, rw - 32);
+   lv_obj_set_style_text_line_space(wf_status_sub, 4, 0);
+   lv_obj_set_pos(wf_status_sub, 16, 48);
+-  wf_forget = pill(card, 16, 200 - 16 - 48, rw - 32, 48, "Forget network", 0x2C2C2E, 0xFF6B6B,
++  wf_forget = pill(card, 16, 200 - 16 - 48, rw - 32, 48, i18n::tr("Forget network"), 0x2C2C2E, 0xFF6B6B,
+                    [](lv_event_t *) { net::forget(); });
+-  lv_obj_t *scan = pill(scr_wifi, rx, 96 + 200 + G, rw, 52, "Scan again", 0x2C2C2E, TEXT, [](lv_event_t *) {
++  lv_obj_t *scan = pill(scr_wifi, rx, 96 + 200 + G, rw, 52, i18n::tr("Scan again"), 0x2C2C2E, TEXT, [](lv_event_t *) {
+     net::scan_start();
+     wf_scanning_shown = true;
+     build_network_list();
+
