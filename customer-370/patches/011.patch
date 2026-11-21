@@ -1,0 +1,301 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -978,10 +997,47 @@
+ TextDone te_done = nullptr;
+ lv_obj_t *te_back_to = nullptr, *te_show_btn, *te_action_lbl;
+ 
++text_input::Buffer te_input;
++lv_obj_t *te_keyboard;
++void refresh_input();
+ void te_submit(lv_event_t *) {
+-  char buf[96];
+-  strlcpy(buf, lv_textarea_get_text(pw_ta), sizeof buf);
+-  if (te_done) te_done(buf);
++  if (te_done) te_done(te_input.value.c_str());
++}
++
++
++void refresh_input() {
++  lv_textarea_set_text(pw_ta,te_input.value.c_str());
++  std::string prefix=te_input.value.substr(0,te_input.cursor);
++  if(!lv_textarea_get_password_mode(pw_ta)) {
++    std::string shaped(_lv_text_ap_calc_bytes_count(prefix.c_str()),'\0');
++    _lv_text_ap_proc(prefix.c_str(),&shaped[0]);
++    lv_textarea_set_cursor_pos(pw_ta,_lv_text_get_encoded_length(shaped.c_str()));
++  } else lv_textarea_set_cursor_pos(pw_ta,te_input.characters_before_cursor());
++}
++void configure_keyboard(lv_obj_t *kb) {
++  static const char *const map[]={
++    "ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج",LV_SYMBOL_BACKSPACE,"\n",
++    "ش","س","ي","ب","ل","ا","ت","ن","م","ك","ط","د","\n",
++    "ذ","ء","ؤ","ر","ى","ة","و","ز","ظ","أ","إ","ئ","\n",
++    "آ","1#","abc",LV_SYMBOL_LEFT," ",LV_SYMBOL_RIGHT,LV_SYMBOL_OK,""};
++  static lv_buttonmatrix_ctrl_t ctrl[43];
++  for(int i=0;i<43;++i) ctrl[i]=1;
++  ctrl[40]=4; // space bar
++  lv_keyboard_set_map(kb,LV_KEYBOARD_MODE_TEXT_ARABIC,map,ctrl);
++  lv_obj_add_event_cb(kb,[](lv_event_t *e) {
++    auto *obj=(lv_obj_t *)lv_event_get_current_target(e);
++    auto id=lv_buttonmatrix_get_selected_button(obj);
++    if(id==LV_BUTTONMATRIX_BUTTON_NONE) return;
++    const char *key=lv_buttonmatrix_get_button_text(obj,id);if(!key)return;
++    if(!strcmp(key,"abc") || !strcmp(key,"ABC") || !strcmp(key,"1#") || !strcmp(key,"أب")
++       || !strcmp(key,LV_SYMBOL_OK) || !strcmp(key,LV_SYMBOL_NEW_LINE)
++       || !strcmp(key,LV_SYMBOL_CLOSE) || !strcmp(key,LV_SYMBOL_KEYBOARD))return;
++    if(!strcmp(key,LV_SYMBOL_BACKSPACE))te_input.backspace();
++    else if(!strcmp(key,LV_SYMBOL_LEFT))te_input.left();
++    else if(!strcmp(key,LV_SYMBOL_RIGHT))te_input.right();
++    else if(!te_input.insert(key))return;
++    refresh_input();
++  },LV_EVENT_VALUE_CHANGED,nullptr);
+ }
+ 
+ void build_text_entry() {
+@@ -990,7 +1046,9 @@
+   pw_ta = lv_textarea_create(scr_pass);
+   lv_textarea_set_one_line(pw_ta, true);
+   lv_obj_set_pos(pw_ta, M, 100);
+-  lv_obj_set_style_text_font(pw_ta, &inter_20, 0);
++  lv_obj_set_style_text_font(pw_ta, arabic_text::font(&inter_20,"ع"), 0);
++  lv_obj_set_style_base_dir(pw_ta,LV_BASE_DIR_AUTO,0);
++  lv_obj_remove_flag(pw_ta,LV_OBJ_FLAG_CLICKABLE);
+   set_text_color(pw_ta, hex(TEXT), 0);
+   lv_obj_set_style_bg_color(pw_ta, hex(0x1C1C1E), 0);
+   lv_obj_set_style_border_width(pw_ta, 0, 0);
+@@ -1001,19 +1059,22 @@
+   lv_obj_set_style_bg_color(pw_ta, hex(TEXT), LV_PART_CURSOR);
+   lv_obj_add_state(pw_ta, LV_STATE_FOCUSED);
+ 
+-  te_show_btn = pill(scr_pass, W - M - 2 * 120 - 12, 100, 120, 56, "Show", 0x2C2C2E, TEXT, [](lv_event_t *) {
++  te_show_btn = pill(scr_pass, W - M - 2 * 120 - 12, 100, 120, 56, i18n::tr("Show"), 0x2C2C2E, TEXT, [](lv_event_t *) {
+     const bool hidden = lv_textarea_get_password_mode(pw_ta);
+     lv_textarea_set_password_mode(pw_ta, !hidden);
+-    set_text(pw_show_lbl, hidden ? "Hide" : "Show");
++    refresh_input();
++    set_text(pw_show_lbl, hidden ? i18n::tr("Hide") : i18n::tr("Show"));
+   });
+   pw_show_lbl = lv_obj_get_child(te_show_btn, 0);
+-  lv_obj_t *act = pill(scr_pass, W - M - 120, 100, 120, 56, "Join", 0xFFFFFF, 0x000000, te_submit);
++  lv_obj_t *act = pill(scr_pass, W - M - 120, 100, 120, 56, i18n::tr("Join"), 0xFFFFFF, 0x000000, te_submit);
+   te_action_lbl = lv_obj_get_child(act, 0);
+ 
+   lv_obj_t *kb = lv_keyboard_create(scr_pass);
++  te_keyboard=kb;
+   lv_obj_set_size(kb, W, H - 176);
+   lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
+-  lv_keyboard_set_textarea(kb, pw_ta);
++  lv_keyboard_set_textarea(kb, nullptr); // Our UTF-8 buffer owns the text.
++  configure_keyboard(kb);
+   lv_obj_set_style_bg_color(kb, hex(0x1C1C1E), 0);
+   lv_obj_set_style_border_width(kb, 0, 0);
+   lv_obj_set_style_pad_all(kb, 8, 0);
+@@ -1024,7 +1085,9 @@
+   set_text_color(kb, hex(TEXT), LV_PART_ITEMS);
+   set_text_color(kb, hex(TEXT), LV_PART_ITEMS | LV_STATE_CHECKED);
+   lv_obj_set_style_text_opa(kb, LV_OPA_COVER, LV_PART_ITEMS | LV_STATE_CHECKED);
+-  lv_obj_set_style_text_font(kb, &lv_font_montserrat_20, LV_PART_ITEMS);
++  static lv_font_t keyboard_font=lv_font_montserrat_20;
++  keyboard_font.fallback=&arabic_20;
++  lv_obj_set_style_text_font(kb, &keyboard_font, LV_PART_ITEMS);
+   lv_obj_set_style_radius(kb, 8, LV_PART_ITEMS);
+   lv_obj_set_style_border_width(kb, 0, LV_PART_ITEMS);
+   lv_obj_set_style_shadow_width(kb, 0, LV_PART_ITEMS);
+@@ -1035,11 +1098,13 @@
+ void open_text_entry(const char *title, const char *initial, const char *placeholder, bool secret,
+                      const char *action, lv_obj_t *back_to, TextDone done, int max_len = 63) {
+   set_text(pw_title, title);
+-  lv_textarea_set_max_length(pw_ta, max_len);
+-  lv_textarea_set_text(pw_ta, initial);
++  te_input.reset(initial,max_len);
++  lv_textarea_set_max_length(pw_ta, 0);
+   lv_textarea_set_placeholder_text(pw_ta, placeholder);
+   lv_textarea_set_password_mode(pw_ta, secret);
+-  set_text(pw_show_lbl, "Show");
++  refresh_input();
++  lv_keyboard_set_mode(te_keyboard, !secret && !strcmp(placeholder,i18n::tr("Name")) && i18n::arabic()?LV_KEYBOARD_MODE_TEXT_ARABIC:LV_KEYBOARD_MODE_TEXT_LOWER);
++  set_text(pw_show_lbl, i18n::tr("Show"));
+   set_text(te_action_lbl, action);
+   show(te_show_btn, secret);
+   lv_obj_set_size(pw_ta, W - 2 * M - (secret ? 2 : 1) * (120 + 12), 56);
+@@ -1050,9 +1115,9 @@
+ 
+ void open_password(const char *ssid) {
+   strlcpy(pw_ssid, ssid, sizeof pw_ssid);
+-  char buf[64];
+-  snprintf(buf, sizeof buf, "Join \"%s\"", ssid);
+-  open_text_entry(buf, "", "Password", true, "Join", scr_wifi, [](const char *t) {
++  char buf[192];
++  snprintf(buf, sizeof buf, i18n::tr("Join \"%s\""), ssid);
++  open_text_entry(buf, "", i18n::tr("Password"), true, i18n::tr("Join"), scr_wifi, [](const char *t) {
+     net::join(pw_ssid, t);
+     refresh_wifi_status();
+     load(scr_wifi, Anim::PopRight);
+@@ -1079,42 +1144,42 @@
+   show(up_install,online && !writing && u != net::Upd::Failed && f.state == net::FeedState::Available);
+   show(up_bar,writing);
+   lv_bar_set_value(up_bar,net::update_progress(),LV_ANIM_OFF);
+-  char msg[180];
+-  if (!online) set_text(up_steps,"Connect to Wi-Fi to check for updates.");
+-  else if (!net::time_valid()) set_text(up_steps,"Waiting for the network clock...");
++  char msg[540];
++  if (!online) set_text(up_steps,i18n::tr("Connect to Wi-Fi to check for updates."));
++  else if (!net::time_valid()) set_text(up_steps,i18n::tr("Waiting for the network clock..."));
+   else {
+     switch (f.state) {
+-      case net::FeedState::Waiting: set_text(up_steps,"Waiting to check for updates..."); break;
+-      case net::FeedState::Checking: set_text(up_steps,"Checking for updates..."); break;
+-      case net::FeedState::Current: set_text(up_steps,"Your panel is up to date."); break;
++      case net::FeedState::Waiting: set_text(up_steps,i18n::tr("Waiting to check for updates...")); break;
++      case net::FeedState::Checking: set_text(up_steps,i18n::tr("Checking for updates...")); break;
++      case net::FeedState::Current: set_text(up_steps,i18n::tr("Your panel is up to date.")); break;
+       case net::FeedState::Available:
+-        snprintf(msg,sizeof msg,"Version %s is available",f.version); set_text(up_steps,msg); break;
+-      case net::FeedState::Failed: set_text(up_steps,"Could not check for updates."); break;
++        snprintf(msg,sizeof msg,i18n::tr("Version %s is available"),f.version); set_text(up_steps,msg); break;
++      case net::FeedState::Failed: set_text(up_steps,i18n::tr("Could not check for updates.")); break;
+     }
+   }
+   set_text(up_url,online && (f.state == net::FeedState::Available || f.state == net::FeedState::Failed) ? f.notes : "");
+-  if (u == net::Upd::Receiving) snprintf(msg,sizeof msg,"Installing %d%%. Keep the panel powered.",net::update_progress());
+-  else if (u == net::Upd::Done) snprintf(msg,sizeof msg,"Installed. Restarting...");
++  if (u == net::Upd::Receiving) snprintf(msg,sizeof msg,i18n::tr("Installing %d%%. Keep the panel powered."),net::update_progress());
++  else if (u == net::Upd::Done) snprintf(msg,sizeof msg,i18n::tr("Installed. Restarting..."));
+   else if (u == net::Upd::Failed) snprintf(msg,sizeof msg,"%s",net::update_error());
+-  else if (f.last_checked[0]) snprintf(msg,sizeof msg,"Last checked   %s",f.last_checked);
++  else if (f.last_checked[0]) snprintf(msg,sizeof msg,i18n::tr("Last checked   %s"),f.last_checked);
+   else msg[0] = 0;
+   set_text(up_status,msg);
+-  if (online) snprintf(msg,sizeof msg,"Manual upload on the same Wi-Fi    http://%s    or    http://%s",net::hostname(),net::ip());
++  if (online) snprintf(msg,sizeof msg,i18n::tr("Manual upload on the same Wi-Fi    http://%s    or    http://%s"),net::hostname(),net::ip());
+   else msg[0] = 0;
+   set_text(up_ip,msg);
+-  if (u == net::Upd::Failed) set_text(up_steps,"Update failed. Nothing was installed.");
++  if (u == net::Upd::Failed) set_text(up_steps,i18n::tr("Update failed. Nothing was installed."));
+ }
+ 
+ void build_update() {
+   scr_update = new_screen(BG);
+-  sub_header(scr_update,"Software update",[](lv_event_t *) {
++  sub_header(scr_update,i18n::tr("Software update"),[](lv_event_t *) {
+     if (net::update_state() == net::Upd::Receiving || net::update_state() == net::Upd::Done) return;
+     net::update_page(false); load(scr_home,Anim::PopRight);
+   });
+   lv_obj_t *card = box(scr_update,M,94,W-2*M,354,0x1C1C1E,R_SM);
+-  lv_obj_set_pos(text(card,"Installed   " FW_VERSION,&inter_20b,hex(TEXT)),24,22);
++  lv_obj_set_pos(text(card,i18n::tr("Installed   ") FW_VERSION,&inter_20b,hex(TEXT)),24,22);
+ #if PANEL_PILOT_ACCESS
+-  up_channel = dropdown(card,"Customers\nPilot test",[](lv_event_t *e) {
++  up_channel = dropdown(card,i18n::tr("Customers\nPilot test"),[](lv_event_t *e) {
+     net::select_pilot(lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e)) == 1);
+   });
+   lv_obj_align(up_channel,LV_ALIGN_TOP_RIGHT,-24,14);
+@@ -1125,21 +1190,21 @@
+   lv_obj_set_width(up_url,W-2*M-48);
+   lv_label_set_long_mode(up_url,LV_LABEL_LONG_WRAP);
+   lv_obj_set_pos(up_url,24,124);
+-  up_check = pill(card,24,185,180,48,"Check now",SURFACE,TEXT,[](lv_event_t *) { net::check_online(); });
+-  up_install = pill(card,220,185,200,48,"Install update",TEXT,BG,[](lv_event_t *) {
++  up_check = pill(card,24,185,180,48,i18n::tr("Check now"),SURFACE,TEXT,[](lv_event_t *) { net::check_online(); });
++  up_install = pill(card,220,185,200,48,i18n::tr("Install update"),TEXT,BG,[](lv_event_t *) {
+     auto f = net::feed();
+     if (f.state != net::FeedState::Available || ui::busy() || !ble_link::panel_can_restart()) {
+-      show_toast("Finish the current task and return the Studio to its home screen."); return;
++      show_toast(i18n::tr("Finish the current task and return the Studio to its home screen.")); return;
+     }
+     snprintf(approved_version,sizeof approved_version,"%s",f.version);
+     approved_pilot = f.pilot;
+-    char body[120]; snprintf(body,sizeof body,"Install version %s and restart this panel?",approved_version);
+-    confirm("Install update?",body,"Install",[] {
++    char body[360]; snprintf(body,sizeof body,i18n::tr("Install version %s and restart this panel?"),approved_version);
++    confirm(i18n::tr("Install update?"),body,i18n::tr("Install"),[] {
+       if (ui::busy() || !net::install_online(approved_version,approved_pilot))
+-        show_toast("Update changed or Studio is busy. Check again.");
++        show_toast(i18n::tr("Update changed or Studio is busy. Check again."));
+     });
+   });
+-  up_wifi_btn = pill(card,24,185,190,48,"Wi-Fi settings",TEXT,BG,[](lv_event_t *) { net::update_page(false); open_wifi(); });
++  up_wifi_btn = pill(card,24,185,190,48,i18n::tr("Wi-Fi settings"),TEXT,BG,[](lv_event_t *) { net::update_page(false); open_wifi(); });
+   up_bar = lv_bar_create(card);
+   lv_obj_set_size(up_bar,W-2*M-48,8); lv_obj_set_pos(up_bar,24,239);
+   lv_bar_set_range(up_bar,0,100);
+@@ -1198,10 +1263,10 @@
+   if (s != last_wifi) {
+     last_wifi = s;
+     set_text(st_wifi_val, s == net::Wifi::Connected ? net::ssid()
+-                                   : s == net::Wifi::Off     ? "Off"
+-                                   : s == net::Wifi::Connecting ? "Connecting..."
+-                                                             : "Not connected");
+-    if (s == net::Wifi::WrongPassword) show_toast("Wrong Wi-Fi password");
++                                   : s == net::Wifi::Off     ? i18n::tr("Off")
++                                   : s == net::Wifi::Connecting ? i18n::tr("Connecting...")
++                                                             : i18n::tr("Not connected"));
++    if (s == net::Wifi::WrongPassword) show_toast(i18n::tr("Wrong Wi-Fi password"));
+     if (lv_screen_active() == scr_wifi) build_network_list();
+   }
+   if (lv_screen_active() == scr_wifi) {
+@@ -1210,39 +1275,39 @@
+       wf_scanning_shown = false;
+       build_network_list();
+     }
+-    set_text(wf_scan_lbl, net::scan_running() ? "Scanning..." : "Scan again");
++    set_text(wf_scan_lbl, net::scan_running() ? i18n::tr("Scanning...") : i18n::tr("Scan again"));
+   }
+   auto feed = net::feed();
+-  char ver_status[32];
+-  if (feed.state == net::FeedState::Available) snprintf(ver_status,sizeof ver_status,"Update %s",feed.version);
++  char ver_status[96];
++  if (feed.state == net::FeedState::Available) snprintf(ver_status,sizeof ver_status,i18n::tr("Update %s"),feed.version);
+   else snprintf(ver_status,sizeof ver_status,"%s",FW_VERSION);
+   set_text(st_ver_val,ver_status);
+   static char notified[16] = {};
+   if (feed.state == net::FeedState::Available && strcmp(notified,feed.version) && lv_screen_active() == scr_home && !ui::busy()) {
+     snprintf(notified,sizeof notified,"%s",feed.version);
+-    show_toast("Panel update available in Screen > Software update.");
++    show_toast(i18n::tr("Panel update available in Screen > Software update."));
+   }
+   if (lv_screen_active() == scr_update) refresh_update();
+   if (!lv_obj_has_flag(clock_layer, LV_OBJ_FLAG_HIDDEN)) refresh_clock();
+ }
+ 
+ void build_apps_page(lv_obj_t *page) {
+-  lv_obj_set_pos(text(page,"Apps",&inter_34b,hex(TEXT)),M,SB+2);
+-  lv_obj_set_pos(text(page,"Music and light, one tap away.",&inter_16,hex(MUTED)),M,88);
++  lv_obj_set_pos(text(page,i18n::tr("Apps"),&inter_34b,hex(TEXT)),M,SB+2);
++  lv_obj_set_pos(text(page,i18n::tr("Music and light, one tap away."),&inter_16,hex(MUTED)),M,88);
+   auto *light=box(page,416,132,360,244,0x242019,24);
+   auto *lamp=box(light,24,24,64,64,0x3C3322,18);
+   lv_obj_center(text(lamp,LV_SYMBOL_CHARGE,&lv_font_montserrat_28,hex(0xE7C994)));
+-  lv_obj_set_pos(text(light,"Lighting",&inter_26b,hex(TEXT)),24,112);
+-  lv_obj_set_pos(text(light,"Colour, brightness and effects",&inter_16,hex(SUB)),24,154);
+-  st_ring_val=text(light,"Off",&inter_16,hex(0xE7C994));lv_obj_set_pos(st_ring_val,24,202);
++  lv_obj_set_pos(text(light,i18n::tr("Lighting"),&inter_26b,hex(TEXT)),24,112);
++  lv_obj_set_pos(text(light,i18n::tr("Colour, brightness and effects"),&inter_16,hex(SUB)),24,154);
++  st_ring_val=text(light,i18n::tr("Off"),&inter_16,hex(0xE7C994));lv_obj_set_pos(st_ring_val,24,202);
+   on_click(light,open_ring_light);pressable(light);
+ #if PANEL_SPOTIFY_ENABLED
+   auto *music=box(page,M,132,360,244,0x14251A,24);
+   auto *brand=lv_image_create(music);lv_image_set_src(brand,&spotify_logo_image);lv_obj_set_pos(brand,24,30);
+   // The logo's black image background is kept inside a clean brand plaque.
+   lv_obj_set_pos(text(music,"Spotify",&inter_26b,hex(TEXT)),24,112);
+-  lv_obj_set_pos(text(music,"Your music, on your phone",&inter_16,hex(SUB)),24,154);
+-  lv_obj_set_pos(text(music,"Open music remote",&inter_16,hex(0x1ED760)),24,202);
++  lv_obj_set_pos(text(music,i18n::tr("Your music, on your phone"),&inter_16,hex(SUB)),24,154);
++  lv_obj_set_pos(text(music,i18n::tr("Open music remote"),&inter_16,hex(0x1ED760)),24,202);
+   on_click(music,open_spotify);pressable(music);
+ #endif
+ }
+@@ -1259,11 +1324,11 @@
+   build_settings_page(page_settings);
+   lv_obj_t *bar = box(scr_home, 0, H - TABBAR_H, W, TABBAR_H, TABBAR, 0);
+   box(bar, 0, 0, W, 1, HAIRLINE, 0);
+-  const char *tabs[5] = {"xBloom", "Recipes", "Apps", "Machine", "Screen"};
++  const char *tabs[5] = {"xBloom", i18n::tr("Recipes"), i18n::tr("Apps"), i18n::tr("Machine"), i18n::tr("Screen")};
+   const int tab_ids[5] = {0,1,3,4,2};
+   for (int column = 0; column < 5; ++column) {
+     const int i=tab_ids[column];
+-    lv_obj_t *hit = group(bar, column * W / 5, 0, W / 5, TABBAR_H);
++    lv_obj_t *hit = group(bar, (i18n::arabic()?4-column:column) * W / 5, 0, W / 5, TABBAR_H);
+     tab_lbl[i] = text(hit, tabs[column], &inter_20b, hex(MUTED));
+     lv_obj_center(tab_lbl[i]);
+     on_click(hit, [](lv_event_t *e) { set_tab((int)(intptr_t)lv_event_get_user_data(e)); }, (void *)(intptr_t)i);
+
