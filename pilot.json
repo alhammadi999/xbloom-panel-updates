@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "board": "crowpanel-advance-43-saud",
-  "version": "3.6.0",
-  "bytes": 5629600,
-  "sha256": "4b62f7f69e511aeba6c4c6c27602b61dde0421a6df8ac6f87f8842c01e917ae1",
-  "notes": "3Dup xBloom Panel: first-use setup, panel-only factory reset and Arabic recipe display. Customer candidate for testing.",
+  "version": "3.6.1",
+  "bytes": 5842544,
+  "sha256": "170dd02158e6f3c80b13c2ebfbb9f47c8ae983e9be70312574a6acda2e04aade",
+  "notes": "3Dup xBloom Panel: restored Spotify, larger playback and volume controls, first-use setup and panel-only factory reset.",
   "channel": "pilot"
 }
