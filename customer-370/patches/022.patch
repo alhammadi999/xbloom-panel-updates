@@ -1,0 +1,31 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1008,6 +1008,7 @@
+ 
+ void refresh_input() {
+   const bool masked=te_secret && te_hidden;
++  lv_obj_set_style_base_dir(pw_ta,masked?LV_BASE_DIR_LTR:LV_BASE_DIR_AUTO,0);
+   std::string display=masked?std::string(_lv_text_get_encoded_length(te_input.value.c_str()),'*'):te_input.value;
+   lv_textarea_set_text(pw_ta,display.c_str());
+   std::string prefix=te_input.value.substr(0,te_input.cursor);
+@@ -2196,7 +2197,7 @@
+       load(scr_edit, Anim::PopRight);
+     });
+   });
+-  const char *cups[4] = {"xPod", "Omni", i18n::tr("Other"), "Tea"};
++  const char *cups[4] = {"xPod", "Omni", i18n::tr("Other"), i18n::tr("Tea")};
+   const int cw = (lw - 3 * 6) / 4;
+   for (int i = 0; i < 4; ++i) {
+     ed_cup_btn[i] = box(scr_edit, lx + i * (cw + 6), top + 60, cw, 44, 0x1C1C1E, 12);
+--- a/src/translations.inc
++++ b/src/translations.inc
+@@ -18,7 +18,7 @@
+   {"1 min\n3 min\n5 min\n10 min\nNever","دقيقة\n3 دقائق\n5 دقائق\n10 دقائق\nأبداً"},
+   {"1. Use Wi-Fi or mobile data.\n\n2. Log in to Spotify on your phone.\n\n3. Approve to connect automatically.","1. اتصل بالواي فاي أو بيانات الهاتف.\n\n2. سجّل دخول Spotify على هاتفك.\n\n3. وافق لإتمام الاتصال تلقائياً."},
+   {"1:%g  |  %.0f ml","‎1:%g‎  |  %.0f مل"},
+-  {"1:%g-%.0fml   |   %gg   |   %d Pours","‎1:%g‎-%.0f مل   |   %g غ   |   %d صبّات"},
++  {"1:%g-%.0fml   |   %gg   |   %d Pours","نسبة ‎1:%g‎ | %.0f مل | %g غ | %d صبّات"},
+   {"< Back","رجوع"},
+   {"A little pause. A better cup.","لحظة هدوء، وفنجان ألذ."},
+   {"AM","ص"},
+
