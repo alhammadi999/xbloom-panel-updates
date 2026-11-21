@@ -1,0 +1,98 @@
+--- a/src/ui_ring_light.inc
++++ b/src/ui_ring_light.inc
+@@ -5,7 +5,7 @@
+ 
+ void refresh_ring_light() {
+   const auto &s = ring_light::state();
+-  if (st_ring_val) set_text(st_ring_val, s.on ? "On" : "Off");
++  if (st_ring_val) set_text(st_ring_val, s.on ? i18n::tr("On") : i18n::tr("Off"));
+   if (!scr_ring_light) return;
+   if (s.on) lv_obj_add_state(rl_power, LV_STATE_CHECKED);
+   else lv_obj_remove_state(rl_power, LV_STATE_CHECKED);
+@@ -30,12 +30,12 @@
+     if (i < 4 && options[i]) ++count;
+   }
+   char effects[24];
+-  snprintf(effects, sizeof effects, "%d selected", count);
+-  set_text(rl_effects_value, s.quiet ? "Quiet mode" : count ? effects : "Steady");
+-  set_text(rl_note, !ring_light::ready() ? "Light unavailable. PWM could not start."
+-                   : !ring_light::settings_saved() ? "Settings not saved yet."
+-                   : s.quiet ? "Quiet mode: cream, up to 10% brightness. Effects paused."
+-                   : "Remembers power, colour and brightness after restart.");
++  snprintf(effects, sizeof effects, i18n::tr("%d selected"), count);
++  set_text(rl_effects_value, s.quiet ? i18n::tr("Quiet mode") : count ? effects : i18n::tr("Steady"));
++  set_text(rl_note, !ring_light::ready() ? i18n::tr("Light unavailable. PWM could not start.")
++                   : !ring_light::settings_saved() ? i18n::tr("Settings not saved yet.")
++                   : s.quiet ? i18n::tr("Quiet mode: cream, up to 10% brightness. Effects paused.")
++                   : i18n::tr("Remembers power, colour and brightness after restart."));
+ }
+ 
+ void open_ring_light(lv_event_t *) {
+@@ -48,11 +48,11 @@
+ }
+ void build_ring_behaviour() {
+   scr_ring_behaviour = new_screen(BG);
+-  sub_header(scr_ring_behaviour, "Light behaviour", [](lv_event_t *) {
++  sub_header(scr_ring_behaviour, i18n::tr("Light behaviour"), [](lv_event_t *) {
+     refresh_ring_light(); load(scr_ring_light, Anim::PopRight);
+   });
+-  const char *labels[] = {"Fade in at brew start", "Pulse while pouring", "Slow pulse when paused",
+-                          "Two flashes when finished", "Quiet mode (up to 10%)"};
++  const char *labels[] = {i18n::tr("Fade in at brew start"), i18n::tr("Pulse while pouring"), i18n::tr("Slow pulse when paused"),
++                          i18n::tr("Two flashes when finished"), i18n::tr("Quiet mode (up to 10%)")};
+   lv_obj_t *card = box(scr_ring_behaviour, M, 96, W - 2 * M, 260, 0x1C1C1E, R_SM);
+   for (int i = 0; i < 5; ++i) {
+     rl_options[i] = toggle(row(card, i, 52, labels[i], nullptr, nullptr), false, [](lv_event_t *e) {
+@@ -65,26 +65,26 @@
+     });
+   }
+   lv_obj_t *wiring = box(scr_ring_behaviour, M, 376, W - 2 * M, 52, 0x1C1C1E, R_SM);
+-  rl_swap = toggle(row(wiring, 0, 52, "Swap warm / cool", nullptr, nullptr), false, [](lv_event_t *e) {
++  rl_swap = toggle(row(wiring, 0, 52, i18n::tr("Swap warm / cool"), nullptr, nullptr), false, [](lv_event_t *e) {
+     ring_light::set_swap(lv_obj_has_state((lv_obj_t *)lv_event_get_target(e), LV_STATE_CHECKED));
+     refresh_ring_light();
+   });
+-  lv_obj_set_pos(text(scr_ring_behaviour, "Quiet mode overrides effects. Power must be on.", &inter_14, hex(MUTED)), M + 4, 444);
++  lv_obj_set_pos(text(scr_ring_behaviour, i18n::tr("Quiet mode overrides effects. Power must be on."), &inter_14, hex(MUTED)), M + 4, 444);
+ }
+ 
+ void build_ring_light() {
+   scr_ring_light = new_screen(BG);
+-  sub_header(scr_ring_light, "Ring light", back_to_apps);
++  sub_header(scr_ring_light, i18n::tr("Ring light"), back_to_apps);
+   const int width = W - 2 * M;
+   lv_obj_t *power = box(scr_ring_light, M, 96, width, 56, 0x1C1C1E, R_SM);
+-  lv_obj_t *r = row(power, 0, 56, "Power", nullptr, nullptr);
++  lv_obj_t *r = row(power, 0, 56, i18n::tr("Power"), nullptr, nullptr);
+   rl_power = toggle(r, false, [](lv_event_t *e) {
+     ring_light::set_on(lv_obj_has_state((lv_obj_t *)lv_event_get_target(e), LV_STATE_CHECKED));
+     refresh_ring_light();
+   });
+ 
+   lv_obj_t *bright = box(scr_ring_light, M, 168, width, 100, 0x1C1C1E, R_SM);
+-  lv_obj_set_pos(text(bright, "Brightness", &inter_20, hex(TEXT)), 16, 12);
++  lv_obj_set_pos(text(bright, i18n::tr("Brightness"), &inter_20, hex(TEXT)), 16, 12);
+   rl_value = text(bright, "50%", &inter_20b, hex(TEXT));
+   lv_obj_align(rl_value, LV_ALIGN_TOP_RIGHT, -16, 12);
+   rl_slider = lv_slider_create(bright);
+@@ -100,8 +100,8 @@
+     refresh_ring_light();
+   }, LV_EVENT_VALUE_CHANGED, nullptr);
+ 
+-  lv_obj_set_pos(text(scr_ring_light, "COLOUR", &inter_14, hex(MUTED)), M + 4, 284);
+-  const char *names[] = {"Cool white", "Cream", "Warm white"};
++  lv_obj_set_pos(text(scr_ring_light, i18n::tr("COLOUR"), &inter_14, hex(MUTED)), M + 4, 284);
++  const char *names[] = {i18n::tr("Cool white"), i18n::tr("Cream"), i18n::tr("Warm white")};
+   const int bw = (width - 2 * G) / 3;
+   for (int i = 0; i < 3; ++i) {
+     rl_colours[i] = box(scr_ring_light, M + i * (bw + G), 308, bw, 52, 0x1C1C1E, R_SM);
+@@ -113,7 +113,7 @@
+     }, (void *)(intptr_t)i);
+   }
+   lv_obj_t *effects = box(scr_ring_light, M, 376, width, 52, 0x1C1C1E, R_SM);
+-  row(effects, 0, 52, "Effects & setup", &rl_effects_value, open_ring_behaviour);
++  row(effects, 0, 52, i18n::tr("Effects & setup"), &rl_effects_value, open_ring_behaviour);
+   rl_note = text(scr_ring_light, "", &inter_14, hex(MUTED));
+   lv_obj_set_pos(rl_note, M + 4, 444);
+   build_ring_behaviour();
+
