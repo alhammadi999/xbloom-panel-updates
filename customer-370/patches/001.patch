@@ -1,0 +1,28 @@
+--- /dev/null
++++ b/include/text_input.h
+@@ -0,0 +1,24 @@
++#pragma once
++#include <string>
++#include <algorithm>
++// Store original UTF-8 separately from LVGL's shaped display text. Cursor edits
++// always operate on complete codepoints, never presentation forms or byte cuts.
++namespace text_input {
++class Buffer {
++ public:
++  std::string value;
++  size_t cursor=0, capacity=63;
++  void reset(const char *initial,size_t limit) {
++    value.clear();cursor=0;capacity=limit;insert(initial);
++  }
++  bool insert(const char *s) {
++    std::string add(s?s:"");
++    if(value.size()+add.size()>capacity) return false;
++    value.insert(cursor,add);cursor+=add.size();return true;
++  }
++  void left() {if(cursor){--cursor;while(cursor && (uint8_t(value[cursor])&0xc0)==0x80)--cursor;}}
++  void right() {if(cursor<value.size()){++cursor;while(cursor<value.size() && (uint8_t(value[cursor])&0xc0)==0x80)++cursor;}}
++  void backspace() {size_t end=cursor;left();value.erase(cursor,end-cursor);}
++  size_t characters_before_cursor() const {size_t n=0;for(size_t i=0;i<cursor;++i)if((uint8_t(value[i])&0xc0)!=0x80)++n;return n;}
++};
++}
+
