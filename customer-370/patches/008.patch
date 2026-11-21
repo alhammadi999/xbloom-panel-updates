@@ -1,0 +1,46 @@
+--- /dev/null
++++ b/src/i18n.cpp
+@@ -0,0 +1,42 @@
++#include "i18n.h"
++#include <cstring>
++#ifndef UI_SIM
++#include <Preferences.h>
++#include <Arduino.h>
++#endif
++namespace i18n {
++namespace {
++bool is_arabic=false;
++struct Entry { const char *en; const char *ar; };
++const Entry entries[] = {
++#include "translations.inc"
++};
++}
++void begin() {
++#ifndef UI_SIM
++  Preferences p;
++  if(p.begin("panel-language",true)) { is_arabic=p.getUChar("lang",0)==1; p.end(); }
++#endif
++}
++bool arabic() {return is_arabic;}
++const char *tr(const char *english) {
++  if(!is_arabic || !english) return english;
++  for(const auto &e:entries) if(!strcmp(english,e.en)) return e.ar;
++  return english;
++}
++bool save_and_restart(bool value) {
++#ifdef UI_SIM
++  is_arabic=value; restart_requested=true; return true;
++#else
++  Preferences p;
++  if(!p.begin("panel-language",false)) return false;
++  bool ok=p.putUChar("lang",value?1:0)==1;p.end();
++  if(ok) ESP.restart();
++  return ok;
++#endif
++}
++#ifdef UI_SIM
++bool restart_requested=false;
++void simulate(bool value) {is_arabic=value;restart_requested=false;}
++#endif
++}
+
