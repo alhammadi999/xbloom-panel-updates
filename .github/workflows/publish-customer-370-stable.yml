@@ -1,0 +1,60 @@
+name: Publish verified 3.7.0 to Customers
+on:
+  push:
+    branches: [feature/customer-arabic-370]
+    paths: [.github/workflows/publish-customer-370-stable.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: customer-3.7.0-candidate
+          run-id: 44951102424
+          github-token: ${{ github.token }}
+          path: /tmp/customer-370
+      - name: Verify approved Arabic image and prepare Customers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,subprocess,sys
+          sys.path.insert(0,'scripts')
+          from verify_release import verify
+          assert subprocess.check_output(['git','hash-object','stable.json'],text=True).strip()=='bcebc1dc8cfa0d85f17b792f51e7b5d3a1fc8153', 'Customer feed changed; review before publishing'
+          assert json.loads(Path('stable.json').read_text())['version']=='3.6.1'
+          pilot=Path('pilot.json').read_bytes()
+          source=Path('/tmp/customer-370')
+          name='xbloom-saud-3.7.0.bin'
+          image=(source/name).read_bytes()
+          assert hashlib.sha256(image).hexdigest()=='2fc870be420fd064d6bf43fddf70633fc285595f25e258e51ca0631b562d1871'
+          assert len(image)==5876416
+          assert b'XBLOOM-CHANNEL|customer|' in image and b'XBLOOM-CHANNEL|owner|' not in image
+          assert b'3Dup xBloom Panel' in image
+          print(verify(source,'pilot'))
+          assert not Path(name).exists(), 'Version already exists'
+          Path(name).write_bytes(image)
+          feed=json.loads((source/'pilot.json').read_text())
+          feed['channel']='stable'
+          feed['notes']='3Dup xBloom Panel: Arabic/English interface, bilingual keyboard and Arabic recipe names. Includes Spotify, first-use setup and panel-only factory reset.'
+          assert len(feed['notes'].encode())<=155
+          Path('stable.json').write_text(json.dumps(feed,indent=2)+'\n')
+          print(verify(Path('.'),'stable'))
+          print(verify(Path('.'),'pilot'))
+          assert Path('pilot.json').read_bytes()==pilot
+          assert subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()==['stable.json']
+          PY
+          python -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Publish customer manifest and verified application atomically
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- stable.json xbloom-saud-3.7.0.bin
+          git commit -m 'Publish 3Dup xBloom Panel 3.7.0 Arabic update to Customers'
+          git push origin HEAD:main
