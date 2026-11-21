@@ -1,0 +1,384 @@
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1015,7 +1015,7 @@
+   } else lv_textarea_set_cursor_pos(pw_ta,te_input.characters_before_cursor());
+ }
+ void configure_keyboard(lv_obj_t *kb) {
+-  static const char *const map[]={
++  static const char *map[]={
+     "ض","ص","ث","ق","ف","غ","ع","ه","خ","ح","ج",LV_SYMBOL_BACKSPACE,"\n",
+     "ش","س","ي","ب","ل","ا","ت","ن","م","ك","ط","د","\n",
+     "ذ","ء","ؤ","ر","ى","ة","و","ز","ظ","أ","إ","ئ","\n",
+@@ -1181,7 +1181,7 @@
+     net::update_page(false); load(scr_home,Anim::PopRight);
+   });
+   lv_obj_t *card = box(scr_update,M,94,W-2*M,354,0x1C1C1E,R_SM);
+-  lv_obj_set_pos(text(card,i18n::tr("Installed   ") FW_VERSION,&inter_20b,hex(TEXT)),24,22);
++  lv_obj_set_pos(text(card,(std::string(i18n::tr("Installed   "))+FW_VERSION).c_str(),&inter_20b,hex(TEXT)),24,22);
+ #if PANEL_PILOT_ACCESS
+   up_channel = dropdown(card,i18n::tr("Customers\nPilot test"),[](lv_event_t *e) {
+     net::select_pilot(lv_dropdown_get_selected((lv_obj_t*)lv_event_get_target(e)) == 1);
+@@ -2323,7 +2323,7 @@
+     set_text(ac_sub, i18n::tr("Sign in with your xBloom app email and password to bring your recipes to the panel. "));
+     set_text(ac_primary_lbl, i18n::tr("Sign in"));
+   }
+-  set_text(ac_msg, cloud::message());
++  set_text(ac_msg, i18n::tr(cloud::message()));
+   show(ac_signout, s == cloud::Acct::SignedIn);
+ }
+ 
+@@ -2415,7 +2415,7 @@
+         rebuild_lists();
+         detail_follow_library();
+       }
+-      if (cloud::state() == cloud::Acct::BadLogin && e.msg[0]) show_toast(e.msg);
++      if (cloud::state() == cloud::Acct::BadLogin && e.msg[0]) show_toast(i18n::tr(e.msg));
+       break;
+   }
+ }
+@@ -2488,7 +2488,7 @@
+     char nm[24];
+     strlcpy(title, library::pour_name(*p, i, nm), sizeof title);
+     const xb::Pour &po = p->r.pours[i];
+-    snprintf(sub, sizeof sub, "%.0f\xC2\xB0" i18n::tr("C  |  %s  |  %d of %d"), po.temp_c, pattern_name(po.pattern), i + 1, p->r.n_pours);
++    snprintf(sub, sizeof sub, i18n::tr("%.0f°C  |  %s  |  %d of %d"), po.temp_c, pattern_name(po.pattern), i + 1, p->r.n_pours);
+   }
+   v.pour_title = title;
+   v.pour_sub = sub;
+@@ -2561,13 +2561,13 @@
+     case UiEvType::BrewAbandoned: brew_ended(); break;
+     case UiEvType::BrewPaused: if (flow == Flow::Brewing) flow = Flow::Paused; refresh_detail(); break;
+     case UiEvType::BrewResumed: if (flow == Flow::Paused) flow = Flow::Brewing; refresh_detail(); break;
+-    case UiEvType::Fault: show_toast(e.msg); break;
++    case UiEvType::Fault: show_toast(i18n::tr(e.msg)); break;
+     case UiEvType::Sleep: break;
+     case UiEvType::PodScanned: wake_req = true; break;
+     case UiEvType::CmdResult: {
+       const BleCmdType t = (BleCmdType)e.i;
+       if (!e.ok) {
+-        show_toast(e.msg[0] ? e.msg : i18n::tr("Command failed"));
++        show_toast(e.msg[0] ? i18n::tr(e.msg) : i18n::tr("Command failed"));
+         if (t == BleCmdType::Load) brew_ended();
+         if (t == BleCmdType::Execute) flow = Flow::Loaded;
+         if (t == BleCmdType::GrinderStart) { grinding = false; set_text(gr_play_icon, LV_SYMBOL_PLAY); }
+--- a/src/ui_spotify.inc
++++ b/src/ui_spotify.inc
+@@ -43,7 +43,7 @@
+     set_text(sp_title, !s.enabled ? i18n::tr("Spotify remote is off") : s.title[0] ? s.title : i18n::tr("Your music, on your phone"));
+     set_text(sp_artist, s.enabled && s.linked ? s.artist : i18n::tr("Sound stays on your phone's connected speaker."));
+     set_text(sp_device, s.enabled && s.linked ? s.device : i18n::tr("Spotify Premium required"));
+-    set_text(sp_note, s.busy ? i18n::tr("Connecting to Spotify...") : s.message);
++    set_text(sp_note, s.busy ? i18n::tr("Connecting to Spotify...") : i18n::tr(s.message));
+     if (!sp_dragging) {
+       lv_slider_set_value(sp_volume, s.volume < 0 ? 0 : s.volume, LV_ANIM_OFF);
+       char value[96];
+--- a/src/translations.inc
++++ b/src/translations.inc
+@@ -6,6 +6,7 @@
+   {" Excessive vibration can spill coffee."," قد يؤدي الاهتزاز الزائد إلى انسكاب القهوة."},
+   {"%.0f ml","%.0f مل"},
+   {"%.0fml","%.0f مل"},
++  {"%.0f°C  |  %s  |  %d of %d","%.0f°C  |  %s  |  %d من %d"},
+   {"%.1fg","%.1f غ"},
+   {"%d created  |  %d shared\nLast synced %s%s","%d خاصة  |  %d مشتركة\nآخر مزامنة %s%s"},
+   {"%d pours  |  %.0f ml","%d صبّات  |  %.0f مل"},
+@@ -32,6 +33,7 @@
+   {"Apply to Studio?","تطبيق على المكينة؟"},
+   {"Apps","التطبيقات"},
+   {"Apps: more for your panel","التطبيقات: المزيد لشاشتك"},
++  {"Audio plays on your phone's connected speaker.","الصوت يعمل على السماعة المتصلة بهاتفك."},
+   {"Auto-mode recipes","وصفات الوضع التلقائي"},
+   {"Auto-mode recipes A/B/C","وصفات الوضع التلقائي A/B/C"},
+   {"BUSY","مشغول"},
+@@ -45,6 +47,8 @@
+   {"COLOUR","اللون"},
+   {"CONNECTION","الاتصال"},
+   {"Cancel","إلغاء"},
++  {"Cannot prepare login yet. Check internet; retrying...","تعذّر تجهيز الدخول. تحقّق من الإنترنت؛ جارٍ المحاولة..."},
++  {"Cannot reach Spotify. Check Wi-Fi and try again.","تعذّر الوصول إلى Spotify. تحقّق من الشبكة وحاول مجدداً."},
+   {"Centered","مركزي"},
+   {"Change language?","تغيير اللغة؟"},
+   {"Change the Studio's units, water source and advanced settings.\nThese settings belong to the coffee machine.","غيّر وحدات المكينة ومصدر الماء والميزات المتقدمة.\nهذه الإعدادات خاصة بمكينة القهوة."},
+@@ -65,22 +69,29 @@
+   {"Coffee motion\nStill background\nClock\nMy photo\nScreen off","قهوة متحركة\nخلفية ثابتة\nالساعة\nصورتي\nإطفاء الشاشة"},
+   {"Colour, brightness and effects","اللون والسطوع والتأثيرات"},
+   {"Command failed","تعذّر تنفيذ الأمر"},
++  {"Command sent to Spotify.","تم إرسال الأمر إلى Spotify."},
+   {"Connect an idle Studio first.","وصّل المكينة وهي في وضع الخمول أولاً."},
+   {"Connect the Studio, then tap Refresh.","وصّل المكينة ثم اضغط تحديث."},
+   {"Connect the panel to Wi-Fi first.\nThen return here to add your photo.","وصّل الشاشة بالواي فاي أولاً.\nثم ارجع لإضافة صورتك."},
+   {"Connect to Wi-Fi","الاتصال بالواي فاي"},
++  {"Connect to Wi-Fi first","اتصل بالواي فاي أولاً"},
+   {"Connect to Wi-Fi first (Screen > Wi-Fi)","اتصل بالواي فاي أولاً من إعدادات الشاشة"},
+   {"Connect to Wi-Fi to check for updates.","اتصل بالواي فاي للبحث عن تحديث."},
++  {"Connect your Spotify account.","وصّل حساب Spotify."},
+   {"Connect your Studio","وصّل مكينتك"},
+   {"Connected","متصل"},
+   {"Connected\n%s","متصل\n%s"},
++  {"Connected. Start a song on your phone.","متصل. شغّل أغنية على هاتفك."},
+   {"Connecting","جارٍ الاتصال"},
+   {"Connecting to Spotify...","جارٍ الاتصال بـ Spotify..."},
+   {"Connecting...","جارٍ الاتصال..."},
+   {"Continue","متابعة"},
+   {"Cool white","أبيض بارد"},
+   {"Could not check for updates.","تعذّر التحقق من التحديثات."},
++  {"Could not read Spotify playback.","تعذّرت قراءة حالة تشغيل Spotify."},
++  {"Could not remove saved sign-in. Try disconnecting again.","تعذّر حذف تسجيل الدخول. حاول فصل الحساب مجدداً."},
+   {"Could not save language.","تعذّر حفظ اللغة."},
++  {"Could not save or verify Spotify. Try linking again.","تعذّر حفظ اتصال Spotify أو التحقق منه. أعد الربط."},
+   {"Could not save setup. Please try again.","تعذّر حفظ الإعداد. حاول مرة أخرى."},
+   {"Couldn't delete it from your account: %s","تعذّر حذفها من حسابك: %s"},
+   {"Cream","كريمي"},
+@@ -98,6 +109,8 @@
+   {"Effects & setup","التأثيرات والإعدادات"},
+   {"Email","البريد الإلكتروني"},
+   {"Enable","تفعيل"},
++  {"Enable Spotify to connect your account.","فعّل Spotify لتوصيل حسابك."},
++  {"Enjoy","بالعافية"},
+   {"Erase Wi-Fi, sign-in, local recipes, photos and panel settings.\nYour xBloom account, phone app and Studio are not changed.\nThe installed software stays. This cannot be undone.","حذف الشبكات وتسجيل الدخول والوصفات المحلية والصور والإعدادات.\nلن يتغيّر حساب xBloom أو تطبيق الهاتف أو المكينة.\nيبقى إصدار البرنامج المثبّت. لا يمكن التراجع عن الحذف."},
+   {"Erase panel","مسح الشاشة"},
+   {"Espresso\nMidnight\nCream","إسبريسو\nليلي\nكريمي"},
+@@ -131,6 +144,8 @@
+   {"Installed   ","المثبّت   "},
+   {"Installed. Restarting...","تم التثبيت. جارٍ إعادة التشغيل..."},
+   {"Installing %d%%. Keep the panel powered.","جارٍ التثبيت %d%%. أبقِ الشاشة موصولة بالكهرباء."},
++  {"Invalid Spotify connection details.","بيانات اتصال Spotify غير صالحة."},
++  {"Invalid Spotify refresh response.","تعذّر تجديد جلسة Spotify."},
+   {"It will also be deleted from your xBloom account.","ستُحذف أيضاً من حساب xBloom."},
+   {"It will be removed from the panel.","ستُحذف من الشاشة."},
+   {"Join","اتصال"},
+@@ -146,6 +161,7 @@
+   {"Light behaviour","سلوك الإضاءة"},
+   {"Light unavailable. PWM could not start.","الإضاءة غير متاحة. تعذّر تشغيلها."},
+   {"Lighting","الإضاءة"},
++  {"Login expired. Tap Login with Spotify for a new QR.","انتهت صلاحية الدخول. اضغط دخول Spotify لرمز جديد."},
+   {"Login with Spotify","دخول Spotify"},
+   {"Looking for networks...","جارٍ البحث عن الشبكات..."},
+   {"Machine","المكينة"},
+@@ -182,6 +198,7 @@
+   {"On-machine guide\n\nPlace a 1 L container under the spout. Use coffee-machine descaler as directed; do not use vinegar.\nOpen Brewer with the middle knob, then triple-press it.\nFollow the Studio prompts. Allow the soak and drain to finish, then rinse the tank, fill to MAX and complete rinsing. Do not drink the liquid.","الخطوات على المكينة\n\nضع وعاء سعة لتر تحت الفوهة. استخدم مزيل ترسبات خاصاً بمكائن القهوة وفق تعليماته؛ لا تستخدم الخل.\nافتح الصب بالمقبض الأوسط واضغطه ثلاث مرات.\nاتبع إرشادات المكينة حتى ينتهي النقع والتصريف، ثم اشطف الخزان واملأه إلى MAX وأكمل الشطف. لا تشرب السائل."},
+   {"On-machine guide\n\nPrepare 100 g and 500 g calibration weights.\nOpen Scale with the right knob; triple-press the middle knob.\nEmpty the scale and confirm with the right knob.\nFollow prompts for 100 g, then 500 g. Wait for Done; repeat if Retry appears.","الخطوات على المكينة\n\nجهّز أوزان معايرة 100 غ و500 غ.\nافتح الميزان بالمقبض الأيمن واضغط الأوسط ثلاث مرات.\nأفرغ الميزان وأكّد بالمقبض الأيمن.\nاتبع طلبات 100 غ ثم 500 غ. انتظر Done وكرّر إذا ظهرت Retry."},
+   {"Open","فتح"},
++  {"Open Spotify on your phone and start a song.","افتح Spotify على هاتفك وشغّل أغنية."},
+   {"Open Spotify to control music playing on your phone.\nOpen Lighting to control your ring light and brew effects.","افتح Spotify للتحكم بالموسيقى على هاتفك.\nافتح الإضاءة للتحكم بالليت وتأثيرات التحضير."},
+   {"Open music remote","افتح التحكم بالموسيقى"},
+   {"Open sign-in","تسجيل الدخول"},
+@@ -196,6 +213,7 @@
+   {"Panel update available in Screen > Software update.","يتوفر تحديث من الشاشة > تحديث البرنامج."},
+   {"Partial settings.","إعدادات غير مكتملة."},
+   {"Password","كلمة المرور"},
++  {"Paused","متوقف مؤقتاً"},
+   {"Place your cup","ضع كوبك"},
+   {"Please wait for the machine connection.","انتظر اتصال المكينة."},
+   {"Pour range","نطاق الصب"},
+@@ -203,6 +221,7 @@
+   {"Pourover\nCoffee Maker","تقطير\nصانعة قهوة"},
+   {"Pours","الصبّات"},
+   {"Power","الطاقة"},
++  {"Preparing your secure login QR...","جارٍ تجهيز رمز الدخول الآمن..."},
+   {"Preset A","الوصفة A"},
+   {"Preset B","الوصفة B"},
+   {"Preset C","الوصفة C"},
+@@ -257,6 +276,7 @@
+   {"Scale calibration - guide","دليل معايرة الميزان"},
+   {"Scale unit","وحدة الميزان"},
+   {"Scan again","بحث مجدداً"},
++  {"Scan the QR with your phone. Any internet connection works.","امسح الرمز بهاتفك. يمكنك استخدام أي اتصال بالإنترنت."},
+   {"Scan with your phone","امسح الرمز بهاتفك"},
+   {"Scanning...","جارٍ البحث..."},
+   {"Screen","الشاشة"},
+@@ -276,6 +296,7 @@
+   {"Sign in with your xBloom app email and password to bring your recipes to the panel. ","أدخل بريد وكلمة مرور تطبيق xBloom لعرض وصفاتك على الشاشة. "},
+   {"Sign out","خروج"},
+   {"Sign out?","تسجيل الخروج؟"},
++  {"Sign-in failed. Tap Login with Spotify to try again.","تعذّر الدخول. اضغط دخول Spotify للمحاولة."},
+   {"Signing in...","جارٍ الدخول..."},
+   {"Sleep after","سكون بعد"},
+   {"Sleep time and night mode follow Screen settings.","وقت السكون والوضع الليلي حسب إعدادات الشاشة."},
+@@ -286,7 +307,13 @@
+   {"Source: xBloom Cleaning and Maintenance. Operate the Studio knobs.","المصدر: تنظيف وصيانة xBloom. نفّذ الخطوات بمقابض المكينة."},
+   {"Spiral","حلزوني"},
+   {"Spotify Premium required","يتطلب Spotify Premium"},
++  {"Spotify asked us to wait. Retrying later.","طلب Spotify الانتظار. ستتم المحاولة لاحقاً."},
++  {"Spotify denied control. Check Premium and app access.","رفض Spotify التحكم. تحقّق من Premium وصلاحية التطبيق."},
+   {"Spotify remote is off","التحكم بـ Spotify متوقف"},
++  {"Spotify returned an invalid sign-in response.","رد تسجيل دخول Spotify غير صالح."},
++  {"Spotify session expired. Reconnect your account.","انتهت جلسة Spotify. أعد توصيل الحساب."},
++  {"Spotify sign-in could not be saved. Link again.","تعذّر حفظ دخول Spotify. أعد الربط."},
++  {"Spotify sign-in expired. Disconnect and link again.","انتهى تسجيل الدخول. افصل الحساب وأعد ربطه."},
+   {"Start using panel","ابدأ الاستخدام"},
+   {"Starter","الجاهزة"},
+   {"Starting","جارٍ البدء"},
+@@ -305,10 +332,12 @@
+   {"The panel saves your password so it can sign in again by itself.","تحفظ الشاشة كلمة المرور لتسجيل الدخول تلقائياً."},
+   {"The panel will restart. Your settings and recipes stay saved.","ستُعاد تشغيل الشاشة. تبقى إعداداتك ووصفاتك محفوظة."},
+   {"The recipe is loaded on the machine.\nPut your cup on the scale, then start.","تم تحميل الوصفة على المكينة.\nضع كوبك على الميزان ثم ابدأ."},
++  {"This Spotify device does not allow remote control.","جهاز Spotify هذا لا يسمح بالتحكم عن بُعد."},
+   {"This is my Studio","هذه مكينتي"},
+   {"Time","الوقت"},
+   {"Touch to skip","المس للتخطي"},
+   {"Touch to wake","المس للتشغيل"},
++  {"Trial is off. Coffee controls work as usual.","Spotify متوقف. أدوات القهوة تعمل كالمعتاد."},
+   {"Turn on your Studio and keep it nearby.","شغّل المكينة وضعها بالقرب من الشاشة."},
+   {"Two flashes when finished","ومضتان عند الانتهاء"},
+   {"Unavailable","غير متاح"},
+@@ -331,6 +360,7 @@
+   {"Wait after","انتظار بعد الصب"},
+   {"Wait for the Studio reply.","انتظر رد المكينة."},
+   {"Wait for the Studio settings operation.","انتظر انتهاء عملية إعدادات المكينة."},
++  {"Waiting for Wi-Fi or other panel activity to finish.","بانتظار الواي فاي أو انتهاء المهمة الحالية."},
+   {"Waiting for the network clock...","بانتظار ضبط الساعة من الشبكة..."},
+   {"Waiting to check for updates...","بانتظار التحقق من التحديثات..."},
+   {"Warm white","أبيض دافئ"},
+@@ -344,6 +374,7 @@
+   {"Wi-Fi settings","إعدادات الواي فاي"},
+   {"Wide pouring can spill hot water. Use L3 unless a change is needed.","النطاق الواسع قد يسكب الماء الساخن. استخدم L3 إلا عند الحاجة."},
+   {"Wrong Wi-Fi password","كلمة مرور الشبكة غير صحيحة"},
++  {"Wrong email or password","البريد أو كلمة المرور غير صحيحة"},
+   {"Wrong password. Tap the network to try again.","كلمة المرور غير صحيحة. اضغط الشبكة للمحاولة."},
+   {"You're ready","أنت جاهز"},
+   {"Your account's recipes will be removed from the panel. Recipes made on the panel stay.","ستُزال وصفات الحساب من الشاشة. تبقى الوصفات التي أنشأتها محلياً."},
+@@ -355,15 +386,22 @@
+   {"Your panel is up to date.","شاشتك محدّثة."},
+   {"Your xBloom account","حسابك في xBloom"},
+   {"at %d:%02d %s","الساعة %d:%02d %s"},
++  {"bad reply from xBloom","رد غير صالح من xBloom"},
++  {"encryption failed","تعذّر تأمين الاتصال"},
+   {"g","غ"},
+   {"keep only your Studio nearby","أبقِ مكينتك وحدها بالقرب"},
++  {"min","دقيقة"},
+   {"ml","مل"},
+   {"ml\ng\noz","مل\nغ\nأونصة"},
+   {"ml/s","مل/ث"},
+   {"no reply","لا يوجد رد"},
+   {"not reported","غير متوفر"},
+   {"not yet","لم تتم بعد"},
++  {"out of memory","الذاكرة غير كافية"},
+   {"oz","أونصة"},
++  {"request failed","تعذّر الطلب"},
+   {"xBloom account","حساب xBloom"},
++  {"xBloom didn't return a session","لم يُرجع xBloom جلسة دخول"},
+   {"xBloom password","كلمة مرور xBloom"},
++  {"xBloom's session is too long for the panel","تعذّر حفظ جلسة xBloom على الشاشة"},
+   {"xBloom: your daily controls","xBloom: تحكمك اليومي"},
+--- a/src/dotfx.cpp
++++ b/src/dotfx.cpp
+@@ -1,5 +1,6 @@
+ #include "arabic_text.h"
+ #include "dotfx.h"
++#include "i18n.h"
+ 
+ #include <Arduino.h>
+ #include <math.h>
+@@ -317,7 +318,7 @@
+ 
+ lv_obj_t *label(lv_obj_t *p, const lv_font_t *f, uint32_t color) {
+   lv_obj_t *l = lv_label_create(p);
+-  lv_label_set_text(l, "");
++  arabic_text::set(l, "");
+   lv_obj_set_style_base_dir(l, LV_BASE_DIR_AUTO, 0);
+   lv_obj_set_style_text_font(l, f, 0);
+   lv_obj_set_style_text_color(l, hexc(color), 0);
+@@ -445,14 +446,14 @@
+   lv_obj_set_flex_align(b, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+   lv_obj_set_style_pad_column(b, 10, 0);
+   lv_obj_t *ic = lv_label_create(b);  // symbols come from the Montserrat icon font
+-  lv_label_set_text(ic, sym);
++  arabic_text::set(ic, sym);
+   lv_obj_set_style_text_font(ic, &lv_font_montserrat_20, 0);
+   lv_obj_set_style_text_color(ic, hexc(fg), 0);
+   if (icon) *icon = ic;
+   if (txt) {
+     lv_obj_t *l = lv_label_create(b);
+-    lv_label_set_text(l, txt);
+-    lv_obj_set_style_text_font(l, &inter_20b, 0);
++    arabic_text::set(l, txt);
++    lv_obj_set_style_text_font(l, arabic_text::font(&inter_20b,txt), 0);
+     lv_obj_set_style_text_color(l, hexc(fg), 0);
+     if (lbl) *lbl = l;
+   }
+@@ -473,15 +474,15 @@
+   lv_obj_set_pos(bs_sub, X, 110);
+   bs_water = label(bs_layer, &inter_64b, 0xFFFFFF);
+   bs_water_u = label(bs_layer, &inter_20, 0x9A9AA0);
+-  const char *caps[2] = {"Scale", "Time"};
++  const char *caps[2] = {i18n::tr("Scale"), i18n::tr("Time")};
+   for (int i = 0; i < 2; ++i) {
+     bs_cap[i] = label(bs_layer, &inter_16, 0x8E8E93);
+-    lv_label_set_text(bs_cap[i], caps[i]);
++    arabic_text::set(bs_cap[i], caps[i]);
+     lv_obj_set_pos(bs_cap[i], X + i * 170, 262);
+     bs_stat[i][0] = label(bs_layer, &inter_34b, 0xFFFFFF);
+     bs_stat[i][1] = label(bs_layer, &inter_16, 0x9A9AA0);
+   }
+-  bs_pause = brew_btn(bs_layer, X, 370, 230, 70, 0xF2F2F2, &bs_pause_icon, &bs_pause_lbl, LV_SYMBOL_PAUSE, "PAUSE",
++  bs_pause = brew_btn(bs_layer, X, 370, 230, 70, 0xF2F2F2, &bs_pause_icon, &bs_pause_lbl, LV_SYMBOL_PAUSE, i18n::tr("PAUSE"),
+                       0x000000, [](lv_event_t *) { if (bs_on_pause) bs_on_pause(); });
+   bs_stop = brew_btn(bs_layer, X + 246, 370, 70, 70, 0x000000, nullptr, nullptr, LV_SYMBOL_STOP, nullptr, 0xF2F2F2,
+                      [](lv_event_t *) { if (bs_on_stop) bs_on_stop(); });
+@@ -521,7 +522,7 @@
+ void intro_play(const char *name, const char *sub) {
+   build();
+   arabic_text::set(in_name, name);
+-  lv_label_set_text(in_sub, sub);
++  arabic_text::set(in_sub, sub);
+   lv_obj_align(in_name, LV_ALIGN_TOP_MID, 0, 318);
+   lv_obj_align(in_sub, LV_ALIGN_TOP_MID, 0, 368);
+   lv_obj_set_style_bg_opa(in_layer, LV_OPA_COVER, 0);
+@@ -539,7 +540,7 @@
+   in_on = false;
+   lv_obj_add_flag(in_layer, LV_OBJ_FLAG_HIDDEN);
+   brew_hide();
+-  lv_label_set_text(fn_title, "Enjoy");
++  arabic_text::set(fn_title, i18n::tr("Enjoy"));
+   arabic_text::set(fn_name, name);
+   lv_obj_align(fn_title, LV_ALIGN_TOP_MID, 0, 290);
+   lv_obj_align(fn_name, LV_ALIGN_TOP_MID, 0, 336);
+@@ -547,10 +548,10 @@
+   snprintf(v[0], 16, "%.1f", grams);
+   snprintf(v[1], 16, "%.0f", ml);
+   snprintf(v[2], 16, "%lu:%02lu", (unsigned long)(ms / 60000), (unsigned long)(ms / 1000 % 60));
+-  const char *u[3] = {"g", "ml", "min"};
++  const char *u[3] = {i18n::tr("g"), i18n::tr("ml"), i18n::tr("min")};
+   for (int i = 0; i < 3; ++i) {
+-    lv_label_set_text(fn_stats[i][0], v[i]);
+-    lv_label_set_text(fn_stats[i][1], u[i]);
++    arabic_text::set(fn_stats[i][0], v[i]);
++    arabic_text::set(fn_stats[i][1], u[i]);
+     // number + unit, centred as a pair in each third, on a shared baseline
+     lv_obj_update_layout(fn_stats[i][0]);
+     lv_obj_update_layout(fn_stats[i][1]);
+@@ -583,23 +584,23 @@
+ void brew_update(const BrewView &v) {
+   if (!bs_on) return;
+   bs_v = v;
+-  arabic_text::set(bs_title, v.paused ? "Paused" : v.pour_title);
++  arabic_text::set(bs_title, v.paused ? i18n::tr("Paused") : v.pour_title);
+   arabic_text::set(bs_sub, v.pour_sub);
+   char b[24];
+   snprintf(b, sizeof b, "%.0f", v.water_ml);
+-  lv_label_set_text(bs_water, b);
++  arabic_text::set(bs_water, b);
+   snprintf(b, sizeof b, "/ %.0f ml", v.total_ml);
+-  lv_label_set_text(bs_water_u, b);
++  arabic_text::set(bs_water_u, b);
+   place_pair(bs_water, bs_water_u, 440, 236);
+   snprintf(b, sizeof b, "%.1f", v.grams);
+-  lv_label_set_text(bs_stat[0][0], b);
+-  lv_label_set_text(bs_stat[0][1], "g");
++  arabic_text::set(bs_stat[0][0], b);
++  arabic_text::set(bs_stat[0][1], i18n::tr("g"));
+   snprintf(b, sizeof b, "%lu:%02lu", (unsigned long)(v.ms / 60000), (unsigned long)(v.ms / 1000 % 60));
+-  lv_label_set_text(bs_stat[1][0], b);
+-  lv_label_set_text(bs_stat[1][1], "min");
++  arabic_text::set(bs_stat[1][0], b);
++  arabic_text::set(bs_stat[1][1], i18n::tr("min"));
+   for (int i = 0; i < 2; ++i) place_pair(bs_stat[i][0], bs_stat[i][1], 440 + i * 170, 326);
+-  lv_label_set_text(bs_pause_lbl, v.paused ? "RESUME" : "PAUSE");
+-  lv_label_set_text(bs_pause_icon, v.paused ? LV_SYMBOL_PLAY : LV_SYMBOL_PAUSE);
++  arabic_text::set(bs_pause_lbl, v.paused ? i18n::tr("RESUME") : i18n::tr("PAUSE"));
++  arabic_text::set(bs_pause_icon, v.paused ? LV_SYMBOL_PLAY : LV_SYMBOL_PAUSE);
+ }
+ 
+ void brew_hide() {
+
