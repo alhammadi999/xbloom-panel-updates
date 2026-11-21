@@ -1,0 +1,314 @@
+--- a/platformio.ini
++++ b/platformio.ini
+@@ -22,7 +22,8 @@
+ build_unflags = -Os
+ build_flags =
+ 	${common.build_flags}
+-	-DFW_VERSION='"3.6.0"'
++	-DFW_VERSION='"3.6.1"'
++	-DPANEL_SPOTIFY_ENABLED=1
+ lib_deps =
+ 	https://github.com/lvgl/lvgl.git#v9.1.0
+ 	https://github.com/lovyan03/LovyanGFX.git#1.2.26
+@@ -56,4 +57,4 @@
+   ${common.build_flags}
+   -DFW_VERSION='"3.5.12"'
+   -DPANEL_PILOT_ACCESS=1
+-  -DPANEL_SPOTIFY_TRIAL=1
++  -DPANEL_SPOTIFY_ENABLED=1
+--- a/include/spotify_remote.h
++++ b/include/spotify_remote.h
+@@ -1,8 +1,8 @@
+ #pragma once
+ #include <stdint.h>
+ #include <string>
+-#ifndef PANEL_SPOTIFY_TRIAL
+-#define PANEL_SPOTIFY_TRIAL 0
++#ifndef PANEL_SPOTIFY_ENABLED
++#define PANEL_SPOTIFY_ENABLED 0
+ #endif
+ 
+ namespace spotify {
+@@ -14,7 +14,7 @@
+   int volume = -1;
+   char login_url[192]{};
+   char title[160]{}, artist[160]{}, device[80]{}, device_id[96]{};
+-  char message[160] = "Enable the trial to connect Spotify.";
++  char message[160] = "Enable Spotify to connect your account.";
+   char pairing_code[7]{};
+ };
+ void begin();
+--- a/sim/CMakeLists.txt
++++ b/sim/CMakeLists.txt
+@@ -10,12 +10,9 @@
+ add_executable(sim sim_main.cpp setup_stub.cpp ../src/ui.cpp ../src/appearance.cpp ../src/brand_logo.cpp ../src/ring_light.cpp ../src/dotfx.cpp ../src/xbloom_protocol.cpp ${FONTS} ../src/lv_mem_psram.c net_stub.cpp cloud_stub.cpp storage_stub.cpp wallpaper_stub.cpp spotify_stub.cpp ../src/library.cpp)
+ set(FW_VERSION "3.5.0" CACHE STRING "Firmware label used by the desktop preview")
+ option(PANEL_PILOT_ACCESS "Show the owner-only channel picker" OFF)
+-option(PANEL_SPOTIFY_TRIAL "Enable the owner Spotify trial" OFF)
+-if(PANEL_SPOTIFY_TRIAL)
+-  if(NOT PANEL_PILOT_ACCESS)
+-    message(FATAL_ERROR "Spotify trial is owner-only")
+-  endif()
+-  target_compile_definitions(sim PRIVATE PANEL_SPOTIFY_TRIAL=1)
++option(PANEL_SPOTIFY_ENABLED "Enable Spotify remote in customer and owner builds" ON)
++if(PANEL_SPOTIFY_ENABLED)
++  target_compile_definitions(sim PRIVATE PANEL_SPOTIFY_ENABLED=1)
+ endif()
+ if(PANEL_PILOT_ACCESS)
+   target_compile_definitions(sim PRIVATE PANEL_PILOT_ACCESS=1)
+--- a/sim/sim_main.cpp
++++ b/sim/sim_main.cpp
+@@ -13,6 +13,7 @@
+ #include "ring_light.h"
+ #include "appearance.h"
+ #include "spotify_remote.h"
++#include "update_policy.h"
+ namespace spotify { void sim_playback(); }
+ #include <vector>
+ #include <assert.h>
+@@ -159,9 +160,11 @@
+     return 0;
+   }
+   run(screen_prefs::welcome_ms); // finish welcome before existing preview tests
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+   if (argc > 1 && !strcmp(argv[1], "spotify-test")) {
++    static_assert(!update_policy::pilot_enabled, "Spotify regression runs as a customer build");
+     auto find = [](auto &&self, lv_obj_t *obj, const char *label) -> lv_obj_t * {
++      if(lv_obj_has_flag(obj,LV_OBJ_FLAG_HIDDEN)) return nullptr;
+       if (lv_obj_check_type(obj, &lv_label_class) && !strcmp(lv_label_get_text(obj), label)) return obj;
+       for (uint32_t i=0; i<lv_obj_get_child_count(obj); ++i)
+         if (auto *hit = self(self, lv_obj_get_child(obj,i), label)) return hit;
+@@ -183,17 +186,40 @@
+     spotify::sim_playback(); run(300);
+     auto *pause = find(find, lv_screen_active(), LV_SYMBOL_PAUSE); assert(pause);
+     assert(!lv_obj_has_state(lv_obj_get_parent(pause), LV_STATE_DISABLED));
++    // Touch targets must suit fingers, remain separate and fit the screen.
++    lv_obj_update_layout(lv_screen_active());
++    lv_area_t last{};
++    for(const char *symbol : {LV_SYMBOL_PREV,LV_SYMBOL_PAUSE,LV_SYMBOL_NEXT}) {
++      auto *label=find(find,lv_screen_active(),symbol);assert(label);
++      auto *button=lv_obj_get_parent(label);lv_area_t a;lv_obj_get_coords(button,&a);
++      assert(lv_obj_get_width(button)>=64 && lv_obj_get_height(button)>=64);
++      assert(a.x1>=last.x2+16 && a.x2<800 && a.y2<400);last=a;
++      lv_point_t edge{a.x1+8,(a.y1+a.y2)/2};assert(lv_obj_hit_test(button,&edge));
++    }
+     save("spotify-playing.ppm");
+     auto *plus = find(find, lv_screen_active(), "+"); assert(plus);
+     lv_obj_send_event(lv_obj_get_parent(plus), LV_EVENT_CLICKED, nullptr); run(300);
+     assert(spotify::state().volume == 40);
++    auto *minus=find(find,lv_screen_active(),"-");assert(minus);
++    for(auto *label : {minus,plus}) assert(lv_obj_get_height(lv_obj_get_parent(label))>=56);
++    lv_obj_send_event(lv_obj_get_parent(minus),LV_EVENT_CLICKED,nullptr);run(300);
++    assert(spotify::state().volume==35);
++    auto *card=lv_obj_get_parent(lv_obj_get_parent(plus));lv_obj_t *slider=nullptr;
++    for(uint32_t i=0;i<lv_obj_get_child_count(card);++i) {
++      auto *o=lv_obj_get_child(card,i);if(lv_obj_check_type(o,&lv_slider_class))slider=o;
++    }
++    assert(slider);lv_area_t sa;lv_obj_get_coords(slider,&sa);
++    lv_point_t near_bar{(sa.x1+sa.x2)/2,sa.y1-20};assert(lv_obj_hit_test(slider,&near_bar));
++    lv_obj_send_event(slider,LV_EVENT_PRESSED,nullptr);lv_slider_set_value(slider,60,LV_ANIM_OFF);
++    lv_obj_send_event(slider,LV_EVENT_VALUE_CHANGED,nullptr);lv_obj_send_event(slider,LV_EVENT_RELEASED,nullptr);run(300);
++    assert(spotify::state().volume==60);
+     lv_obj_send_event(lv_obj_get_parent(pause), LV_EVENT_CLICKED, nullptr); run(300);
+     assert(!spotify::state().playing && find(find, lv_screen_active(), LV_SYMBOL_PLAY));
+     spotify::set_enabled(false); run(300);
+     auto *play = find(find, lv_screen_active(), LV_SYMBOL_PLAY); assert(play);
+     assert(lv_obj_has_state(lv_obj_get_parent(play), LV_STATE_DISABLED));
+     assert(!spotify::command(spotify::Command::Play));
+-    puts("PASS: Spotify disabled, pairing, playback UI, pause event and disabled controls"); return 0;
++    puts("PASS: customer Spotify visibility, large separated touch targets, slider hit area, pairing, playback and disabled controls"); return 0;
+   }
+ #endif
+   if (argc > 1 && !strcmp(argv[1], "ota-test")) {
+--- a/src/net.cpp
++++ b/src/net.cpp
+@@ -204,7 +204,7 @@
+       server.send_P(200, "text/html", WALLPAPER_PAGE);
+     });
+     server.on("/wallpaper", HTTP_POST, handle_wallpaper_done, handle_wallpaper_upload);
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+     server.on("/spotify/start", HTTP_GET, [] {
+       server.sendHeader("Cache-Control", "no-store"); server.sendHeader("Referrer-Policy", "no-referrer");
+       const auto url = spotify::authorize_url(server.arg("state").c_str());
+@@ -352,7 +352,7 @@
+     update_state();
+     if (g_server_started) server.handleClient();
+     online_tick();
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+     spotify::tick(g_state == net::Wifi::Connected && net::time_valid() && !g_page_enabled &&
+                   g_upd != net::Upd::Receiving && g_upd != net::Upd::Done && !g_wallpaper_receiving && !cloud::busy());
+ #endif
+@@ -369,7 +369,7 @@
+   setenv("TZ", TZ_DUBAI, 1);
+   tzset();
+   mtx = xSemaphoreCreateMutex();
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+   spotify::begin();
+ #endif
+   prefs.begin("panel", false);
+--- a/src/spotify_engine.cpp
++++ b/src/spotify_engine.cpp
+@@ -1,6 +1,6 @@
+ #include "spotify_engine.h"
+ #include "spotify_login.h"
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+ #include <ArduinoJson.h>
+ #include <algorithm>
+ #include <stdio.h>
+--- a/src/spotify_remote.cpp
++++ b/src/spotify_remote.cpp
+@@ -1,5 +1,5 @@
+ #include "spotify_remote.h"
+-#if PANEL_SPOTIFY_TRIAL && !defined(UI_SIM)
++#if PANEL_SPOTIFY_ENABLED && !defined(UI_SIM)
+ #include "spotify_engine.h"
+ #include "spotify_login.h"
+ #include "spotify_online_login.h"
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1236,7 +1236,7 @@
+   lv_obj_set_pos(text(light,"Colour, brightness and effects",&inter_16,hex(SUB)),24,154);
+   st_ring_val=text(light,"Off",&inter_16,hex(0xE7C994));lv_obj_set_pos(st_ring_val,24,202);
+   on_click(light,open_ring_light);pressable(light);
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+   auto *music=box(page,M,132,360,244,0x14251A,24);
+   auto *brand=lv_image_create(music);lv_image_set_src(brand,&spotify_logo_image);lv_obj_set_pos(brand,24,30);
+   // The logo's black image background is kept inside a clean brand plaque.
+@@ -2547,7 +2547,7 @@
+   build_update();
+   build_setup();
+   build_ring_light();
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+   build_spotify();
+ #endif
+   build_machine_settings();
+@@ -2601,7 +2601,7 @@
+     check_idle_home();
+     refresh_net();
+     tick_setup();
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+     const bool music_visible = lv_screen_active() == scr_spotify;
+     spotify::set_visible(music_visible);
+     if (music_visible) refresh_spotify();
+@@ -2636,7 +2636,7 @@
+   set_tab(0);
+ }
+ void check_idle_home() {
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+   if (lv_screen_active() == scr_spotify && spotify::state().login_url[0]) return;
+ #endif
+   if (setup_visible() || busy() || dotfx::playing()) return;
+@@ -2702,7 +2702,7 @@
+     }
+     case 26: brew_ended(); break;
+     case 30: open_machine_settings(nullptr); break;
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+     case 31: open_spotify(nullptr); break;
+     case 32: lv_screen_load(scr_home); set_tab(3); break;
+ #endif
+--- a/src/ui_setup.inc
++++ b/src/ui_setup.inc
+@@ -80,7 +80,7 @@
+     "Switch on your Studio and return it to its home screen.\nClose the xBloom phone app if it is using Bluetooth.\nCheck the machine name below before continuing.",
+     "Use the grinder, pour water or open the scale.\nYour favourite recipes are also on this tab.",
+     "Find your created, shared and starter recipes.\nOpen a recipe to review it before brewing.\nChanges to account recipes sync with your xBloom account.",
+-    "Open Lighting to control your ring light and brew effects.",
++    "Open Spotify to control music playing on your phone.\nOpen Lighting to control your ring light and brew effects.",
+     "Change the Studio's units, water source and advanced settings.\nThese settings belong to the coffee machine.",
+     "Manage Wi-Fi, your account, appearance and software updates.\nReplay this guide or reset only this panel from here.",
+     "Your panel is set up.\nOpen Screen > Quick guide whenever you need a reminder.\nEnjoy your coffee."};
+--- a/src/ui_spotify.inc
++++ b/src/ui_spotify.inc
+@@ -1,4 +1,4 @@
+-#if PANEL_SPOTIFY_TRIAL
++#if PANEL_SPOTIFY_ENABLED
+ #include "spotify_logo.inc"
+ lv_obj_t *scr_spotify, *sp_title, *sp_artist, *sp_device, *sp_note;
+ lv_obj_t *sp_previous, *sp_play, *sp_next, *sp_link, *sp_disconnect, *sp_enabled;
+@@ -60,19 +60,21 @@
+   scr_spotify = new_screen(BG);
+   sub_header(scr_spotify, "", [](lv_event_t *) { spotify::set_visible(false); back_to_apps(nullptr); });
+   auto *logo = lv_image_create(scr_spotify); lv_image_set_src(logo, &spotify_logo_image); lv_obj_set_pos(logo, 76, 43);
+-  auto *trial = box(scr_spotify, 264, 50, 68, 26, 0x17271D, 8);
+-  lv_obj_center(text(trial, "TRIAL", &inter_14, hex(0x8DB79B)));
++  auto *trial = box(scr_spotify, 264, 50, 80, 26, 0x17271D, 8);
++  lv_obj_center(text(trial, "REMOTE", &inter_14, hex(0x8DB79B)));
+   lv_obj_t *power = group(scr_spotify, W - 190, 42, 160, 40);
+   lv_obj_set_pos(text(power, "Enable", &inter_16, hex(SUB)), 0, 10);
+   sp_enabled = toggle(power, spotify::state().enabled, [](lv_event_t *e) {
+     spotify::set_enabled(lv_obj_has_state((lv_obj_t *)lv_event_get_target(e), LV_STATE_CHECKED)); refresh_spotify();
+   });
++  lv_obj_set_size(sp_enabled, 64, 40);
++  lv_obj_set_ext_click_area(sp_enabled, 8);
+   lv_obj_align(sp_enabled, LV_ALIGN_RIGHT_MID, 0, 0);
+   auto *card = box(scr_spotify, M, 96, W - 2*M, 300, 0x151A17, R);
+   lv_obj_set_style_border_width(card, 1, 0); lv_obj_set_style_border_color(card, hex(0x293B30), 0);
+-  sp_title = text(card, "", &inter_26b, hex(TEXT)); lv_obj_set_pos(sp_title, 200, 36);
+-  sp_artist = text(card, "", &inter_20, hex(SUB)); lv_obj_set_pos(sp_artist, 200, 73);
+-  sp_device = text(card, "", &inter_16, hex(MUTED)); lv_obj_set_pos(sp_device, 200, 102);
++  sp_title = text(card, "", &inter_26b, hex(TEXT)); lv_obj_set_pos(sp_title, 200, 28);
++  sp_artist = text(card, "", &inter_20, hex(SUB)); lv_obj_set_pos(sp_artist, 200, 66);
++  sp_device = text(card, "", &inter_16, hex(MUTED)); lv_obj_set_pos(sp_device, 200, 98);
+   for (auto *label : {sp_title, sp_artist, sp_device}) {
+     lv_obj_set_width(label, 520); lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+   }
+@@ -80,18 +82,20 @@
+   auto *music=text(sp_art, LV_SYMBOL_AUDIO, &lv_font_montserrat_48, hex(0xB2E6C2)); lv_obj_set_pos(music, 49, 24);
+   for(int i=0;i<4;++i) sp_bars[i]=box(sp_art, 48+i*14, 108, 8, 8, 0x1ED760, 4);
+   sp_status=text(card, "PHONE REMOTE", &inter_14, hex(0x1ED760)); lv_obj_set_pos(sp_status, 200, 14);
+-  sp_previous=round_button(card, 200, 132, 44, LV_SYMBOL_PREV, &lv_font_montserrat_20, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Previous); });
+-  sp_play=round_button(card, 260, 126, 56, LV_SYMBOL_PLAY, &lv_font_montserrat_28, nullptr, [](lv_event_t *) { spotify::command(spotify::state().playing ? spotify::Command::Pause : spotify::Command::Play); });
++  sp_previous=round_button(card, 200, 132, 72, LV_SYMBOL_PREV, &lv_font_montserrat_28, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Previous); });
++  sp_play=round_button(card, 300, 124, 88, LV_SYMBOL_PLAY, &lv_font_montserrat_48, nullptr, [](lv_event_t *) { spotify::command(spotify::state().playing ? spotify::Command::Pause : spotify::Command::Play); });
+   lv_obj_set_style_bg_color(sp_play, hex(0x1ED760), 0); lv_obj_set_style_text_color(lv_obj_get_child(sp_play,0), hex(0),0);
+-  sp_next=round_button(card, 332, 132, 44, LV_SYMBOL_NEXT, &lv_font_montserrat_20, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Next); });
+-  sp_volume_text = text(card, "Volume", &inter_16, hex(SUB)); lv_obj_set_pos(sp_volume_text, 24, 188);
+-  sp_minus = pill(card, 24, 216, 56, 36, "-", SURFACE, TEXT, [](lv_event_t *) {
++  sp_next=round_button(card, 416, 132, 72, LV_SYMBOL_NEXT, &lv_font_montserrat_28, nullptr, [](lv_event_t *) { spotify::command(spotify::Command::Next); });
++  sp_volume_text = text(card, "Volume", &inter_16, hex(SUB)); lv_obj_set_pos(sp_volume_text, 24, 212);
++  sp_minus = pill(card, 24, 238, 64, 56, "-", SURFACE, TEXT, [](lv_event_t *) {
+     spotify::command(spotify::Command::Volume, std::max(0, spotify::state().volume - 5));
+   });
+-  sp_plus = pill(card, 664, 216, 56, 36, "+", SURFACE, TEXT, [](lv_event_t *) {
++  sp_plus = pill(card, 664, 238, 64, 56, "+", SURFACE, TEXT, [](lv_event_t *) {
+     spotify::command(spotify::Command::Volume, std::min(100, spotify::state().volume + 5));
+   });
+-  sp_volume = lv_slider_create(card); lv_obj_set_pos(sp_volume, 112, 229); lv_obj_set_size(sp_volume, 520, 8);
++  sp_volume = lv_slider_create(card); lv_obj_set_pos(sp_volume, 112, 261); lv_obj_set_size(sp_volume, 520, 10);
++  lv_obj_set_ext_click_area(sp_volume, 23);
++  lv_obj_set_style_pad_all(sp_volume, 10, LV_PART_KNOB);
+   lv_slider_set_range(sp_volume, 0, 100);
+   lv_obj_set_style_bg_color(sp_volume, hex(0x1ED760), LV_PART_INDICATOR);
+   lv_obj_set_style_bg_color(sp_volume, hex(TEXT), LV_PART_KNOB);
+@@ -106,16 +110,16 @@
+     }
+     if (event == LV_EVENT_PRESS_LOST) sp_dragging = false;
+   }, LV_EVENT_ALL, nullptr);
+-  sp_note = text(card, "", &inter_14, hex(MUTED)); lv_obj_set_pos(sp_note, 24, 258);
+-  lv_obj_set_width(sp_note, W - 2*M - 48); lv_label_set_long_mode(sp_note, LV_LABEL_LONG_WRAP);
++  sp_note = text(scr_spotify, "", &inter_14, hex(MUTED)); lv_obj_set_pos(sp_note, 324, 418);
++  lv_obj_set_width(sp_note, W - 324 - M); lv_label_set_long_mode(sp_note, LV_LABEL_LONG_WRAP);
+   sp_qr = lv_qrcode_create(card); lv_qrcode_set_size(sp_qr, 224);
+   lv_qrcode_set_dark_color(sp_qr, hex(0)); lv_qrcode_set_light_color(sp_qr, hex(0xffffff));
+   lv_obj_set_pos(sp_qr, 24, 16); lv_obj_set_style_border_width(sp_qr, 8, 0); lv_obj_set_style_border_color(sp_qr, hex(0xffffff), 0);
+   sp_scan = text(card, "Scan with your phone", &inter_26b, hex(TEXT)); lv_obj_set_pos(sp_scan, 280, 46);
+   sp_scan_note = text(card, "1. Use Wi-Fi or mobile data.\n\n2. Log in to Spotify on your phone.\n\n3. Approve to connect automatically.", &inter_16, hex(SUB));
+   lv_obj_set_pos(sp_scan_note, 280, 102); lv_obj_set_width(sp_scan_note, 420);
+-  sp_link = pill(scr_spotify, M, 412, 250, 44, "Login with Spotify", TEXT, BG, [](lv_event_t *) { spotify::start_pairing(); refresh_spotify(); });
+-  sp_disconnect = pill(scr_spotify, M, 412, 250, 44, "Disconnect account", SURFACE, TEXT, [](lv_event_t *) { spotify::disconnect(); refresh_spotify(); });
++  sp_link = pill(scr_spotify, M, 412, 280, 56, "Login with Spotify", TEXT, BG, [](lv_event_t *) { spotify::start_pairing(); refresh_spotify(); });
++  sp_disconnect = pill(scr_spotify, M, 412, 280, 56, "Disconnect account", SURFACE, TEXT, [](lv_event_t *) { spotify::disconnect(); refresh_spotify(); });
+   refresh_spotify();
+ }
+ #endif
+
