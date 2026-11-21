@@ -1,0 +1,61 @@
+--- /dev/null
++++ b/sim/localization_test.inc
+@@ -0,0 +1,57 @@
++#include "i18n.h"
++#include "text_input.h"
++#include <src/misc/lv_text_ap.h>
++static std::string shaped(const char *s) {
++  std::string out(_lv_text_ap_calc_bytes_count(s),'\0');_lv_text_ap_proc(s,&out[0]);return out;
++}
++static lv_obj_t *arabic_label(const char *en,bool overlay=false) {
++  return find_text(overlay?lv_layer_top():lv_screen_active(),shaped(i18n::tr(en)).c_str());
++}
++static lv_obj_t *find_keyboard(lv_obj_t *root) {
++  if(lv_obj_check_type(root,&lv_keyboard_class))return root;
++  for(uint32_t i=0;i<lv_obj_get_child_count(root);++i)if(auto *k=find_keyboard(lv_obj_get_child(root,i)))return k;
++  return nullptr;
++}
++static void key(lv_obj_t *kb,const char *value) {
++  for(uint32_t i=0;i<100;++i) {
++    const char *s=lv_buttonmatrix_get_button_text(kb,i);if(!s)break;
++    if(!strcmp(s,value)) {
++      lv_buttonmatrix_set_selected_button(kb,i);lv_obj_send_event(kb,LV_EVENT_VALUE_CHANGED,nullptr);run(20);return;
++    }
++  }
++  fprintf(stderr,"Missing key: %s\n",value);assert(false);
++}
++static void test_localization() {
++  assert(i18n::arabic());run(screen_prefs::welcome_ms);
++  ui::sim_show(9,0);run(100);assert(arabic_label("Screen settings"));save("ar-settings.ppm");
++  auto *lang=find_text(lv_screen_active(),"English");assert(lang);
++  ble_link::allow_restart=false;lv_obj_send_event(lv_obj_get_parent(lang),LV_EVENT_CLICKED,nullptr);run(100);assert(!i18n::restart_requested);
++  ble_link::allow_restart=true;run(4500);
++  const int pages[]={0,1,4,5,6,10,12,15,16,28,29,30,31,32};
++  for(int page:pages){ui::sim_show(page,0);run(200);char fn[48];snprintf(fn,sizeof fn,"ar-page-%02d.ppm",page);save(fn);}
++  ui::sim_show(40,0);run(200);save("ar-mixed-recipes.ppm");
++  ui::sim_show(41,0);run(100);
++  auto *kb=find_keyboard(lv_screen_active());assert(kb);
++  assert(lv_keyboard_get_mode(kb)==LV_KEYBOARD_MODE_TEXT_ARABIC);
++  for(const char *s:{"ق","ه","و","ة"," ","أ","إ","آ","ئ","ؤ"})key(kb,s);
++  assert(!strcmp(ui::sim_input_value(),"قهوة أإآئؤ"));
++  key(kb,LV_SYMBOL_BACKSPACE);assert(!strcmp(ui::sim_input_value(),"قهوة أإآئ"));
++  key(kb,"abc");assert(!strcmp(ui::sim_input_value(),"قهوة أإآئ"));
++  key(kb," ");key(kb,"ABC");key(kb,"V");key(kb,"1#");key(kb,"6");key(kb,"0");
++  key(kb,"أب");save("ar-keyboard.ppm");
++  const std::string expected="قهوة أإآئ V60";assert(ui::sim_input_value()==expected);
++  key(kb,LV_SYMBOL_LEFT);key(kb,LV_SYMBOL_BACKSPACE);key(kb,"ا");
++  assert(!strcmp(ui::sim_input_value(),"قهوة أإآئ Vا0"));
++  key(kb,LV_SYMBOL_OK);assert(!strcmp(ui::sim_recipe_name(),"قهوة أإآئ Vا0"));
++  // A name reopened for editing still contains canonical UTF-8, never shaped glyphs.
++  ui::sim_show(42,0);assert(!strcmp(ui::sim_input_value(),"قهوة أإآئ Vا0"));
++  kb=find_keyboard(lv_screen_active());key(kb,LV_SYMBOL_BACKSPACE);assert(!strcmp(ui::sim_input_value(),"قهوة أإآئ Vا"));
++  ui::sim_show(11,0);kb=find_keyboard(lv_screen_active());assert(lv_keyboard_get_mode(kb)==LV_KEYBOARD_MODE_TEXT_LOWER);
++  key(kb,"a");key(kb,"1#");key(kb,"@");key(kb,"1");assert(!strcmp(ui::sim_input_value(),"a@1"));save("ar-password.ppm");
++  text_input::Buffer bounded;bounded.reset("",5);assert(bounded.insert("قه"));assert(!bounded.insert("و"));assert(bounded.value=="قه");bounded.backspace();assert(bounded.value=="ق");
++  ui::sim_show(9,0);run(100);lang=find_text(lv_screen_active(),"English");lv_obj_send_event(lv_obj_get_parent(lang),LV_EVENT_CLICKED,nullptr);run(100);
++  assert(arabic_label("Change language?",true));save("ar-language.ppm");
++  auto *restart=arabic_label("Restart",true);assert(restart);lv_obj_send_event(lv_obj_get_parent(restart),LV_EVENT_CLICKED,nullptr);
++  assert(i18n::restart_requested && !i18n::arabic());
++  puts("PASS Arabic UI, language restart guard, bilingual keyboard, original UTF-8, mixed names, editing and byte limits");
++}
+
