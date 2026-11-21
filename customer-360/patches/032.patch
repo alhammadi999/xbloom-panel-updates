@@ -1,0 +1,68 @@
+--- a/src/ui_setup.inc
++++ b/src/ui_setup.inc
+@@ -70,11 +70,11 @@
+ void open_setup(bool launch) {
+   if (!setup_tour_replay) setup_view = panel_setup::step();
+   const int s = int(setup_view);
+-  const char *titles[] = {"Welcome to 3Dup", "Connect to Wi-Fi", "Your xBloom account", "Connect your Studio",
++  const char *titles[] = {"3Dup xBloom Panel", "Connect to Wi-Fi", "Your xBloom account", "Connect your Studio",
+     "xBloom: your daily controls", "Recipes: your coffee library", "Apps: more for your panel",
+     "Machine: Studio settings", "Screen: make it yours", "You're ready"};
+   const char *bodies[] = {
+-    "Let's set up your panel together.\nConnect Wi-Fi, sign in and find your Studio.\nYour progress is saved if you switch off.",
++    "Welcome! Let's set up your panel together.\nConnect Wi-Fi, sign in and find your Studio.\nYour progress is saved if you switch off.",
+     "Choose your 2.4 GHz Wi-Fi network and enter its password.\nAfter connecting, we'll open the xBloom sign-in page.",
+     "Use the same account as the xBloom app on your phone.\nYour created and shared recipes will appear here.\nKeep your Studio switched on nearby.",
+     "Switch on your Studio and return it to its home screen.\nClose the xBloom phone app if it is using Bluetooth.\nCheck the machine name below before continuing.",
+@@ -89,7 +89,7 @@
+   const int phase = s < 4 ? s+1 : s < 9 ? 5 : 6;
+   char progress[64]; snprintf(progress, sizeof progress, "SETUP %d / 6%s", phase, s>=4 && s<=8 ? "  -  QUICK GUIDE" : "");
+   set_text(setup_progress, setup_tour_replay ? "QUICK GUIDE" : progress);
+-  const char *action = s==0 ? "Let's begin" : s==1 ? "Choose Wi-Fi" : s==2 ? "Open sign-in" : s==3 ? "This is my Studio" : s==9 ? "Start using 3Dup" : "Next";
++  const char *action = s==0 ? "Let's begin" : s==1 ? "Choose Wi-Fi" : s==2 ? "Open sign-in" : s==3 ? "This is my Studio" : s==9 ? "Start using panel" : "Next";
+   if ((s==1 && net::state()==net::Wifi::Connected) || (s==2 && cloud::state()==cloud::Acct::SignedIn)) action="Continue";
+   set_text(setup_next_label, action);
+   show(setup_back, s>0); show(setup_logo, s==0);
+--- a/sim/customer_test.inc
++++ b/sim/customer_test.inc
+@@ -19,7 +19,7 @@
+   assert(panel_setup::step()==S::Welcome);
+   assert(!appearance::welcome_visible());
+   run(35000); // first-run must never time out to Home
+-  assert(find_text(lv_screen_active(),"Welcome to 3Dup"));
++  assert(find_text(lv_screen_active(),"3Dup xBloom Panel"));
+   save("customer-01-welcome.ppm");
+   click_text("Let's begin"); assert(panel_setup::step()==S::Wifi);
+   net::sim_state(net::Wifi::WrongPassword);run(400);
+@@ -40,7 +40,7 @@
+   click_text("Back");assert(panel_setup::step()==S::HomeTour);
+   for(int i=0;i<5;++i)click_text("Next");
+   assert(panel_setup::step()==S::Ready);save("customer-06-ready.ppm");
+-  click_text("Start using 3Dup");assert(!panel_setup::active());
++  click_text("Start using panel");assert(!panel_setup::active());
+   ui::sim_show(9,0);run(400);save("customer-07-settings.ppm");
+   click_text("Quick guide");click_text("Back");assert(!panel_setup::active());
+   ui::sim_show(9,0);run(400);
+--- a/src/appearance.cpp
++++ b/src/appearance.cpp
+@@ -74,7 +74,7 @@
+   lv_obj_remove_flag(logo, LV_OBJ_FLAG_CLICKABLE);
+   for (int i = 0; i < 3; ++i) welcome_dots[i] = rect(welcome, 384 + i*14, 359, 6, 6, 0xCD7D48, LV_RADIUS_CIRCLE);
+   auto *tagline = label(welcome, "Your next great cup starts here.", &inter_20, 0x766556, 0, 390); lv_obj_align(tagline, LV_ALIGN_TOP_MID, 0, 390);
+-  label(welcome, "A 3Dup experience", &inter_14, 0x7C736C, 48, 444);
++  label(welcome, "3Dup xBloom Panel", &inter_14, 0x7C736C, 48, 444);
+   auto *footer = label(welcome, "Made for xBloom Studio", &inter_14, 0x7C736C, 0, 444); lv_obj_align(footer, LV_ALIGN_TOP_RIGHT, -48, 444);
+   welcome_hint = label(welcome, "Touch to skip", &inter_14, 0xA1653E, 0, 444); lv_obj_align(welcome_hint, LV_ALIGN_TOP_MID, 0, 444);
+   visible(welcome_hint, false);
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -221,7 +221,7 @@
+ void setup() {
+   mbedtls_platform_set_calloc_free(tls_calloc, tls_free);  // before anything opens a TLS connection
+   Serial.begin(115200);
+-  Serial.printf("\nxBloom Panel %s starting\n", FW_VERSION);
++  Serial.printf("\n3Dup xBloom Panel %s starting\n", FW_VERSION);
+   Serial.println(PANEL_OTA_MARKER FW_VERSION "|");
+   Serial.println(PANEL_CHANNEL_MARKER);
+   if (!panel_setup::boot()) {
+
