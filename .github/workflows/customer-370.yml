@@ -48,6 +48,7 @@ jobs:
           cmake -S sim -B sim-build -DLVGL_DIR="$GITHUB_WORKSPACE/vendor/lvgl" -DARDUINOJSON_DIR="$GITHUB_WORKSPACE/vendor/ArduinoJson" -DFW_VERSION=3.7.0
           cmake --build sim-build -j 4
           ./sim-build/sim localization-test
+          ./sim-build/sim arabic-setup-test
           ./sim-build/sim spotify-test
           ./sim-build/sim customer-test
           ./sim-build/sim arabic-test
@@ -59,10 +60,52 @@ jobs:
           /tmp/reset-test
           g++ -std=c++17 -Itests/setup_mocks -Iinclude tests/test_panel_setup.cpp src/panel_setup.cpp -o /tmp/setup-test
           /tmp/setup-test
+          g++ -std=c++17 -Itests/setup_mocks -Iinclude tests/test_i18n.cpp src/i18n.cpp -o /tmp/i18n-test
+          /tmp/i18n-test
           python -m unittest discover -s tests -p test_customer_release.py -v
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: customer-3.7.0-ui
           path: firmware-src/*.ppm
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: customer360-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            customer360-${{ runner.os }}-
+            owner-pio55-${{ runner.os }}-
+      - name: Build customer firmware
+        working-directory: firmware-src
+        run: pio run -e crowpanel-advance-43 -j 2
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: |
+            ~/.platformio
+            firmware-src/.pio
+          key: customer360-${{ runner.os }}-${{ github.sha }}
+      - name: Verify and package candidate
+        working-directory: firmware-src
+        run: |
+          mkdir -p candidate
+          python scripts/prepare_panel_release.py pilot candidate --image .pio/build/crowpanel-advance-43/firmware.bin --notes "Add Arabic and English interface, saved language choice and bilingual UTF-8 keyboard."
+          cp .pio/build/crowpanel-advance-43/firmware.factory.bin candidate/customer-3.7.0-full-usb.bin
+          python - <<'PY'
+          from pathlib import Path
+          app=Path('candidate/xbloom-saud-3.7.0.bin').read_bytes()
+          full=Path('candidate/customer-3.7.0-full-usb.bin').read_bytes()
+          assert b'XBLOOM-CHANNEL|customer|' in app and b'XBLOOM-CHANNEL|owner|' not in app
+          assert full[0x10000:]==app
+          assert all(x==255 for x in full[0x9000:0xe000]), 'Personal data in NVS'
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: customer-3.7.0-candidate
+          path: firmware-src/candidate
+          if-no-files-found: error
+
+
 
