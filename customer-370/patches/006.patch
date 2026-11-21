@@ -1,0 +1,24 @@
+--- a/sim/sim_main.cpp
++++ b/sim/sim_main.cpp
+@@ -94,6 +94,7 @@
+   for (int t = 0, k = 0; t <= ms; t += every, ++k) { run(every); snprintf(fn, sizeof fn, "%s_%03d.ppm", prefix, k); save(fn); }
+ }
+ #include "customer_test.inc"
++#include "localization_test.inc"
+ int main(int argc, char **argv) {
+   lv_init(); lv_tick_set_cb(millis);
+   static uint8_t buf[800 * 480 * 2];
+@@ -103,9 +104,12 @@
+   lv_display_set_buffers(d, buf, nullptr, sizeof buf, LV_DISPLAY_RENDER_MODE_PARTIAL);
+   const bool customer_test = argc>1 && !strcmp(argv[1],"customer-test");
+   if(customer_test) {panel_setup::save(panel_setup::Step::Welcome);net::sim_state(net::Wifi::Off);cloud::sim_state(cloud::Acct::SignedOut);}
++  bool localized=argc>1 && !strcmp(argv[1],"localization-test");
++  if(localized)i18n::simulate(true);
+   ui::begin(); now += 1500; // simulate Bluetooth setup before the first rendered UI frame
+   ui::tick(); run(300); save("0_connecting.ppm");
+   if(customer_test) {test_customer();return 0;}
++  if(localized){test_localization();return 0;}
+   if(argc>1 && !strcmp(argv[1],"arabic-test")) {
+     run(screen_prefs::welcome_ms);
+     const char *sample=u8"قهوة عربية V60 - 250ml";
+
