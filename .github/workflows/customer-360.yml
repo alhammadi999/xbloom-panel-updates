@@ -53,6 +53,8 @@ jobs:
           ./sim-build/sim machine-test
           g++ -std=c++17 -Iinclude tests/test_reset_sequence.cpp -o /tmp/reset-test
           /tmp/reset-test
+          g++ -std=c++17 -Itests/setup_mocks -Iinclude tests/test_panel_setup.cpp src/panel_setup.cpp -o /tmp/setup-test
+          /tmp/setup-test
           python -m unittest discover -s tests -p test_customer_release.py -v
       - uses: actions/upload-artifact@v4
         if: always()

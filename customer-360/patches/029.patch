@@ -1,0 +1,105 @@
+--- a/sim/sim_main.cpp
++++ b/sim/sim_main.cpp
+@@ -4,6 +4,7 @@
+ #include <string.h>
+ #include <deque>
+ #include "ui.h"
++#include "cloud.h"
+ #include "panel_setup.h"
+ #include "arabic_text.h"
+ #include <src/misc/lv_text_ap.h>
+--- a/src/ui.cpp
++++ b/src/ui.cpp
+@@ -1785,7 +1785,11 @@
+   lib.clear();
+   for (PanelRecipe &p : cached)
+     if (p.kind != KIND_STARTER) lib.push_back(p);
+-  if (!have) lib = recipes::seeds();  // first start: your recipes until you sign in
++#if defined(UI_SIM) || PANEL_PILOT_ACCESS
++  if (!have) lib = recipes::seeds();
++#else
++  (void)have; // Customer panels start with only generic Starter recipes.
++#endif
+   for (PanelRecipe s : recipes::starters()) {
+     for (const PanelRecipe &c : cached)
+       if (c.kind == KIND_STARTER && strcmp(c.r.name, s.r.name) == 0) s.favorite = c.favorite;
+--- a/src/ui_machine.inc
++++ b/src/ui_machine.inc
+@@ -246,7 +246,11 @@
+     snprintf(details,sizeof details,"Read details - Radius: %s; base: %s; vibration: %s",radius,base,vibration);
+     if (displayed_settings.radius_base < 0 && machine::advanced_format(displayed_settings.radius_reply))
+       machine_note("Pour range needs its L3 reference. Open Advanced features > Pour range.");
++#if PANEL_PILOT_ACCESS
+     else machine_note(details);
++#else
++    else machine_note("Some settings could not be read. Keep Studio on its home screen and tap Refresh.");
++#endif
+   }
+ }
+ void clear_machine_read(const char *status) {
+--- /dev/null
++++ b/tests/setup_mocks/Arduino.h
+@@ -0,0 +1,3 @@
++#pragma once
++struct EspMock { bool restarted=false; void restart(){restarted=true;} };
++inline EspMock ESP;
+--- /dev/null
++++ b/tests/setup_mocks/LittleFS.h
+@@ -0,0 +1,4 @@
++#pragma once
++inline bool fail_format=false, local_files_present=true;
++struct FsMock {bool format(){if(fail_format)return false;local_files_present=false;return true;}};
++inline FsMock LittleFS;
+--- /dev/null
++++ b/tests/setup_mocks/nvs_flash.h
+@@ -0,0 +1,5 @@
++#pragma once
++#include "Preferences.h"
++constexpr int ESP_OK=0;
++inline int nvs_flash_erase(){saved_preferences.clear();return ESP_OK;}
++inline int nvs_flash_init(){return ESP_OK;}
+--- /dev/null
++++ b/tests/setup_mocks/Preferences.h
+@@ -0,0 +1,16 @@
++#pragma once
++#include <map>
++#include <string>
++#include <stdint.h>
++inline std::map<std::string,unsigned> saved_preferences;
++inline bool fail_save=false;
++class Preferences {
++  std::string ns;
++public:
++  bool begin(const char *name,bool){ns=name;return true;}
++  void end(){}
++  bool getBool(const char *key,bool fallback){return getUChar(key,fallback);}
++  uint8_t getUChar(const char *key,uint8_t fallback){auto i=saved_preferences.find(ns+"/"+key);return i==saved_preferences.end()?fallback:i->second;}
++  size_t putUChar(const char *key,uint8_t value){if(fail_save)return 0;saved_preferences[ns+"/"+key]=value;return 1;}
++  size_t putBool(const char *key,bool value){return putUChar(key,value);}
++};
+--- /dev/null
++++ b/tests/test_panel_setup.cpp
+@@ -0,0 +1,22 @@
++#include "panel_setup.h"
++#include <Preferences.h>
++#include <Arduino.h>
++#include <LittleFS.h>
++#include <cassert>
++int main(){
++  using namespace panel_setup;
++  assert(boot() && active() && step()==Step::Welcome);
++  for (auto s : {Step::Wifi,Step::Account,Step::Machine,Step::RecipesTour,Step::Ready,Step::Done}){
++    assert(save(s));assert(boot());assert(step()==s);
++  }
++  assert(!active());
++  fail_save=true;assert(!save(Step::Welcome));assert(step()==Step::Done);
++  assert(!request_reset());assert(!ESP.restarted);fail_save=false;
++  saved_preferences["acct/token"]=1;saved_preferences["panel/ssid"]=1;saved_preferences["panel-pair/peer"]=1;
++  assert(request_reset());assert(ESP.restarted); // No data wiped while services could be active.
++  assert(saved_preferences.count("acct/token") && local_files_present);
++  fail_format=true;assert(!boot());assert(saved_preferences.count("first-use/reset"));assert(saved_preferences.count("acct/token"));
++  fail_format=false;assert(boot());assert(active() && step()==Step::Welcome);
++  assert(saved_preferences.empty() && !local_files_present);
++  saved_preferences["first-use/step"]=255;assert(boot() && step()==Step::Welcome);
++}
+
