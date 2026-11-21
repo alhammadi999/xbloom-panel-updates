@@ -1,0 +1,61 @@
+name: Publish verified 3.6.0 to Pilot
+on:
+  push:
+    branches: [feature/customer-first-use-360]
+    paths: [.github/workflows/publish-customer-360-pilot.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: customer-3.6.0-candidate
+          run-id: 44896432022
+          github-token: ${{ github.token }}
+          path: /tmp/customer-360
+      - name: Verify exact approved image and prepare Pilot only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,subprocess,sys
+          sys.path.insert(0,'scripts')
+          from verify_release import verify
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == '89eae4c115eb7082bbd9d093fd7b82b39c10a077', 'Main changed; review before publishing'
+          assert json.loads(Path('pilot.json').read_text())['version']=='3.5.12'
+          stable=Path('stable.json').read_bytes()
+          source=Path('/tmp/customer-360')
+          name='xbloom-saud-3.6.0.bin'
+          image=(source/name).read_bytes()
+          digest=hashlib.sha256(image).hexdigest()
+          assert digest=='4b62f7f69e511aeba6c4c6c27602b61dde0421a6df8ac6f87f8842c01e917ae1'
+          assert len(image)==5629600
+          assert b'XBLOOM-CHANNEL|customer|' in image and b'XBLOOM-CHANNEL|owner|' not in image
+          assert b'3Dup xBloom Panel' in image
+          verify(source,'pilot')
+          assert not Path(name).exists(), 'Version already exists'
+          Path(name).write_bytes(image)
+          feed=json.loads((source/'pilot.json').read_text())
+          feed['notes']='3Dup xBloom Panel: first-use setup, panel-only factory reset and Arabic recipe display. Customer candidate for testing.'
+          assert len(feed['notes'].encode())<=155
+          Path('pilot.json').write_text(json.dumps(feed,indent=2)+'\n')
+          print(verify(Path('.'),'pilot'))
+          print(verify(Path('.'),'stable'))
+          assert Path('stable.json').read_bytes()==stable
+          assert subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()==['pilot.json']
+          PY
+          python -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Publish verified Pilot manifest and application together
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- pilot.json xbloom-saud-3.6.0.bin
+          git commit -m 'Publish 3Dup xBloom Panel 3.6.0 customer candidate to Pilot'
+          git push origin HEAD:main
+
